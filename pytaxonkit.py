@@ -66,6 +66,9 @@ class ListResult():
     def __init__(self, jsondata):
         self._data = json.loads(jsondata)
 
+    def __len__(self):
+        return len(self._data)
+
     def __str__(self):
         return json.dumps(self._data, indent=4)
 
@@ -95,10 +98,10 @@ class ListResult():
 def list(ids, raw=False, debug=False):
     '''list taxon tree of given taxids
 
-    By default, a `pytaxonkit.ListResult` object is returned. This provides a convenient mechanism
-    for programmatic access of the results—see the doctest below. NOTE: for very large results,
-    these objects introduce a significant amount of overhead—in such cases, it is recommended to
-    set `raw=True` so that the raw JSON result is returned.
+    Returns a `pytaxonkit.ListResult` object by default. NOTE: while this data structure provides
+    convenient programmatic access to the result, it introduces a significant amount of overhead.
+    For very large results, it is recommended to set `raw=True` so that the raw JSON data (loaded
+    into a dictionary) is returned.
 
     >>> import pytaxonkit
     >>> result = pytaxonkit.list([8204, 2468])
@@ -110,11 +113,12 @@ def list(ids, raw=False, debug=False):
     >>>
     >>>
     >>> result = pytaxonkit.list(['9605', '239934'])
+    >>> len(result)
+    2
     >>> for taxon, tree in result:
     ...     print(f'[Top level result] {taxon.name} ({taxon.taxid})')
     ...     subtaxa = [t for t in tree.traverse]
-    ...     n = len(subtaxa)
-    ...     print(f'    - {n} sub taxa; first 5:')
+    ...     print(f'    - {len(subtaxa)} sub taxa; first 5:')
     ...     for subtaxon in subtaxa[:5]:
     ...         print('        -', subtaxon)
     ...
@@ -151,12 +155,9 @@ def list(ids, raw=False, debug=False):
     >>>
     >>> result = pytaxonkit.list([9605], raw=True)  # setting `raw=True` returns only the raw JSON
     >>> print(result)
-    {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens
-    neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}, '2665952 [no
-    rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}},
-    '1425170 [species] Homo heidelbergensis': {}}}
+    {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}}, '1425170 [species] Homo heidelbergensis': {}}}
     >>>
-    '''
+    '''  # noqa: E501
     idlist = ','.join(map(str, ids))
     arglist = ['taxonkit', 'list', '--json', '--show-name', '--show-rank', '--ids', idlist]
     if debug:
@@ -167,3 +168,89 @@ def list(ids, raw=False, debug=False):
         return json.loads(out)
     else:
         return ListResult(out)
+
+
+# -------------------------------------------------------------------------------------------------
+# taxonkit lineage
+# -------------------------------------------------------------------------------------------------
+
+class LineageResult():
+    def __init__(self, data):
+        self._data = data.strip()
+        taxid, statuscode, lineagenames, lineagetaxids, rank = data.strip().split('\t')
+        self.taxid = taxid
+        self.code = statuscode
+        self.rank = rank
+        self.lineage = []
+        for name, tid in zip(lineagenames.split(';'), lineagetaxids.split(';')):
+            taxon = BasicTaxon(taxid=tid, rank=None, name=name)
+            self.lineage.append(taxon)
+        # rewrite the final entry with rank info
+        self.lineage[-1] = BasicTaxon(taxid=tid, rank=rank, name=name)
+
+    def __len__(self):
+        return len(self.lineage)
+
+    def __str__(self):
+        return self._data
+
+    def __iter__(self):
+        return iter(self.lineage)
+
+
+def lineage(ids, debug=False):
+    '''query lineage of given taxids
+
+    Returns a `pytaxonkit.LineageResult` object
+
+    >>> import pytaxonkit
+    >>> for result in pytaxonkit.lineage([7399, 1973489]):
+    ...     print(result.taxid, result.code, result.rank)
+    ...     for taxon in result:
+    ...         print(taxon)
+    ...
+    7399 7399 order
+    Taxon(taxid='131567', rank=None, name='cellular organisms')
+    Taxon(taxid='2759', rank=None, name='Eukaryota')
+    Taxon(taxid='33154', rank=None, name='Opisthokonta')
+    Taxon(taxid='33208', rank=None, name='Metazoa')
+    Taxon(taxid='6072', rank=None, name='Eumetazoa')
+    Taxon(taxid='33213', rank=None, name='Bilateria')
+    Taxon(taxid='33317', rank=None, name='Protostomia')
+    Taxon(taxid='1206794', rank=None, name='Ecdysozoa')
+    Taxon(taxid='88770', rank=None, name='Panarthropoda')
+    Taxon(taxid='6656', rank=None, name='Arthropoda')
+    Taxon(taxid='197563', rank=None, name='Mandibulata')
+    Taxon(taxid='197562', rank=None, name='Pancrustacea')
+    Taxon(taxid='6960', rank=None, name='Hexapoda')
+    Taxon(taxid='50557', rank=None, name='Insecta')
+    Taxon(taxid='85512', rank=None, name='Dicondylia')
+    Taxon(taxid='7496', rank=None, name='Pterygota')
+    Taxon(taxid='33340', rank=None, name='Neoptera')
+    Taxon(taxid='33392', rank=None, name='Holometabola')
+    Taxon(taxid='7399', rank='order', name='Hymenoptera')
+    1973489 1973489 species
+    Taxon(taxid='131567', rank=None, name='cellular organisms')
+    Taxon(taxid='2', rank=None, name='Bacteria')
+    Taxon(taxid='1783272', rank=None, name='Terrabacteria group')
+    Taxon(taxid='1239', rank=None, name='Firmicutes')
+    Taxon(taxid='91061', rank=None, name='Bacilli')
+    Taxon(taxid='1385', rank=None, name='Bacillales')
+    Taxon(taxid='186817', rank=None, name='Bacillaceae')
+    Taxon(taxid='1386', rank=None, name='Bacillus')
+    Taxon(taxid='86661', rank=None, name='Bacillus cereus group')
+    Taxon(taxid='1973489', rank='species', name='Bacillus sp. ISSFR-25F')
+    >>> len(result)
+    10
+    >>> print(result)  # string representation is the raw output from taxonkit
+    1973489 1973489 cellular organisms;Bacteria;Terrabacteria group;Firmicutes;Bacilli;Bacillales;Bacillaceae;Bacillus;Bacillus cereus group;Bacillus sp. ISSFR-25F    131567;2;1783272;1239;91061;1385;186817;1386;86661;1973489      species
+    >>>
+    '''  # noqa: E501
+    idlist = '\n'.join(map(str, ids))
+    arglist = ['taxonkit', 'lineage', '--show-lineage-taxids', '--show-rank', '--show-status-code']
+    if debug:
+        log(*arglist)  # pragma: no cover
+    proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    out, err = proc.communicate(input=idlist)
+    for line in out.strip().split('\n'):
+        yield LineageResult(line)
