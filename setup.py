@@ -42,6 +42,7 @@
 # -------------------------------------------------------------------------------------------------
 
 from setuptools import setup
+import versioneer
 
 
 with open('README.md', 'r') as infile:
@@ -52,10 +53,12 @@ setup(
     description='Python bindings for the TaxonKit library',
     long_description=longdesc,
     long_description_content_type='text/markdown',
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     url='https://github.com/bioforensics/pytaxonkit',
     author='Daniel Standage',
     author_email='daniel.standage@nbacc.dhs.gov',
-    py_modules=['pytaxonkit'],
+    py_modules=['pytaxonkit', '_version'],
     python_requires='>=3.6',
     classifiers=[
         'Environment :: Console',

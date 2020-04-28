@@ -46,6 +46,10 @@ import json
 from subprocess import Popen, PIPE
 import sys
 
+from _version import get_versions
+__version__ = get_versions()['version']
+del get_versions
+
 
 def log(*args, level='debug'):  # pragma: no cover
     print(f'[pytaxonkit::{level}]', *args, file=sys.stderr)
