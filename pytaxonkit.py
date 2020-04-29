@@ -120,9 +120,11 @@ def list(ids, raw=False, debug=False):
     [Result]    Plasmid NR79        2468    species
     >>>
     >>>
-    >>> result = pytaxonkit.list(['9605', '239934'])
+    >>> result = pytaxonkit.list([13685, 9903])
     >>> len(result)
     2
+    >>> type(result)
+    <class 'pytaxonkit.ListResult'>
     >>> for taxon, tree in result:
     ...     print(f'[Top level result] {taxon.name} ({taxon.taxid})')
     ...     subtaxa = [t for t in tree.traverse]
@@ -130,20 +132,20 @@ def list(ids, raw=False, debug=False):
     ...     for subtaxon in subtaxa[:5]:
     ...         print('        -', subtaxon)
     ...
-    [Top level result] Homo (9605)
-        - 6 sub taxa; first 5:
-            - Taxon(taxid=9606, rank='species', name='Homo sapiens')
-            - Taxon(taxid=63221, rank='subspecies', name='Homo sapiens neanderthalensis')
-            - Taxon(taxid=741158, rank='subspecies', name="Homo sapiens subsp. 'Denisova'")
-            - Taxon(taxid=2665952, rank='no rank', name='environmental samples')
-            - Taxon(taxid=2665953, rank='species', name='Homo sapiens environmental sample')
-    [Top level result] Akkermansia (239934)
-        - 90 sub taxa; first 5:
-            - Taxon(taxid=239935, rank='species', name='Akkermansia muciniphila')
-            - Taxon(taxid=349741, rank='no rank', name='Akkermansia muciniphila ATCC BAA-835')
-            - Taxon(taxid=512293, rank='no rank', name='environmental samples')
-            - Taxon(taxid=512294, rank='species', name='uncultured Akkermansia sp.')
-            - Taxon(taxid=1131822, rank='species', name='uncultured Akkermansia sp. SMG25')
+    [Top level result] Solenopsis (13685)
+        - 198 sub taxa; first 5:
+            - Taxon(taxid=13686, rank='species', name='Solenopsis invicta')
+            - Taxon(taxid=30203, rank='species', name='Solenopsis richteri')
+            - Taxon(taxid=121131, rank='species', name='Solenopsis geminata')
+            - Taxon(taxid=176590, rank='species', name='Solenopsis amblychila')
+            - Taxon(taxid=176591, rank='species', name='Solenopsis aurea')
+    [Top level result] Bos (9903)
+        - 26 sub taxa; first 5:
+            - Taxon(taxid=9904, rank='species', name='Bos gaurus')
+            - Taxon(taxid=1383418, rank='subspecies', name='Bos gaurus gaurus')
+            - Taxon(taxid=9906, rank='species', name='Bos javanicus')
+            - Taxon(taxid=380177, rank='subspecies', name='Bos javanicus birmanicus')
+            - Taxon(taxid=659500, rank='subspecies', name='Bos javanicus javanicus')
     >>>
     >>>
     >>> result = pytaxonkit.list([121498])
@@ -242,3 +244,64 @@ def lineage(ids, formatstr=None, debug=False):
         )
         data = data[columnorderout]
         return data
+
+
+def name2taxid(names, sciname=False, debug=False):
+    '''query taxid by taxon scientific name
+
+    By default, both scientific names and synonyms are supported. Set `sciname=True` to ignore
+    synonyms.
+
+    >>> import pytaxonkit
+    >>> names = [
+    ...     'Homo sapiens', 'Akkermansia muciniphila ATCC BAA-835',
+    ...     'Akkermansia muciniphila', 'Mouse Intracisternal A-particle',
+    ...     'Wei Shen', 'uncultured murine large bowel bacterium BAC 54B',
+    ...     'Croceibacter phage P2559Y'
+    ... ]
+    >>> result = pytaxonkit.name2taxid(names, debug=True)
+    >>> result
+                                                  Name    TaxID     Rank
+    0                                     Homo sapiens     9606  species
+    1             Akkermansia muciniphila ATCC BAA-835   349741  no rank
+    2                          Akkermansia muciniphila   239935  species
+    3                  Mouse Intracisternal A-particle    11932  species
+    4                                         Wei Shen     <NA>     <NA>
+    5  uncultured murine large bowel bacterium BAC 54B   314101  species
+    6                        Croceibacter phage P2559Y  1327037  species
+    >>>
+    >>>
+    >>> names = ['Phyllobolus spinuliferus', 'Alteromonas putrefaciens', 'Rexia erectus']
+    >>> result = pytaxonkit.name2taxid(names)
+    >>> result
+                           Name   TaxID     Rank
+    0  Phyllobolus spinuliferus  359607  species
+    1  Alteromonas putrefaciens      24  species
+    2             Rexia erectus  262902  species
+    >>> result = pytaxonkit.name2taxid(names, sciname=True)
+    >>> result
+                           Name  TaxID  Rank
+    0  Phyllobolus spinuliferus   <NA>  <NA>
+    1  Alteromonas putrefaciens   <NA>  <NA>
+    2             Rexia erectus   <NA>  <NA>
+    >>>
+    '''
+    namelist = '\n'.join(map(str, names))
+    arglist = ['taxonkit', 'name2taxid', '--show-rank']
+    if sciname:
+        arglist.append('--sci-name')
+    if debug:
+        log(*arglist)  # pragma: no cover
+    proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    out, err = proc.communicate(input=namelist)
+    if proc.returncode != 0:
+        raise TaxonKitCLIError(err)  # pragma: no cover
+    columns = {
+        'Name': pandas.StringDtype(),
+        'TaxID': pandas.UInt32Dtype(),
+        'Rank': pandas.StringDtype()
+    }
+    data = pandas.read_csv(
+        StringIO(out), sep='\t', header=None, names=columns, dtype=columns, index_col=False
+    )
+    return data
