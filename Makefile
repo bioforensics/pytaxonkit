@@ -6,7 +6,7 @@ help: Makefile
 
 ## test:     execute test suite
 test:
-	pytest --cov=pytaxonkit --doctest-modules pytaxonkit.py
+	pytest --cov=pytaxonkit --doctest-modules pytaxonkit.py conftest.py
 
 
 ## style:    check code style against PEP8

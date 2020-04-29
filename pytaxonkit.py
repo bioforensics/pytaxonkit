@@ -42,9 +42,13 @@
 # -------------------------------------------------------------------------------------------------
 
 from collections import namedtuple, Mapping
+from io import StringIO
 import json
+import os
+import pandas
 from subprocess import Popen, PIPE
 import sys
+from tempfile import NamedTemporaryFile
 
 from _version import get_versions
 __version__ = get_versions()['version']
@@ -56,6 +60,10 @@ def log(*args, level='debug'):  # pragma: no cover
 
 
 BasicTaxon = namedtuple('Taxon', ['taxid', 'rank', 'name'])
+
+
+class TaxonKitCLIError(RuntimeError):
+    pass
 
 
 # -------------------------------------------------------------------------------------------------
@@ -164,93 +172,73 @@ def list(ids, raw=False, debug=False):
         log(*arglist)  # pragma: no cover
     proc = Popen(arglist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     out, err = proc.communicate()
+    if proc.returncode != 0:
+        raise TaxonKitCLIError(err)  # pragma: no cover
     if raw:
         return json.loads(out)
     else:
         return ListResult(out)
 
 
-# -------------------------------------------------------------------------------------------------
-# taxonkit lineage
-# -------------------------------------------------------------------------------------------------
-
-class LineageResult():
-    def __init__(self, data):
-        self._data = data.strip()
-        taxid, statuscode, lineagenames, lineagetaxids, rank = data.strip().split('\t')
-        self.taxid = taxid
-        self.code = statuscode
-        self.rank = rank
-        self.lineage = []
-        for name, tid in zip(lineagenames.split(';'), lineagetaxids.split(';')):
-            taxon = BasicTaxon(taxid=tid, rank=None, name=name)
-            self.lineage.append(taxon)
-        # rewrite the final entry with rank info
-        self.lineage[-1] = BasicTaxon(taxid=tid, rank=rank, name=name)
-
-    def __len__(self):
-        return len(self.lineage)
-
-    def __str__(self):
-        return self._data
-
-    def __iter__(self):
-        return iter(self.lineage)
-
-
-def lineage(ids, debug=False):
+def lineage(ids, formatstr=None, debug=False):
     '''query lineage of given taxids
 
-    Returns a `pytaxonkit.LineageResult` object
+    Runs `taxonkit lineage` and `taxonkit reformat` to provide both a full and a "standard" lineage
+    for each taxid provided; by default `formatstr=None` and the standard format string is used
+    with `taxonkit reformat`; see the [taxonkit reformat documentation]
+    (https://bioinf.shenwei.me/taxonkit/usage/#reformat) for instructions on overriding the
+    default.
 
     >>> import pytaxonkit
-    >>> for result in pytaxonkit.lineage([7399, 1973489]):
-    ...     print(result.taxid, result.code, result.rank)
-    ...     for taxon in result:
-    ...         print(taxon)
-    ...
-    7399 7399 order
-    Taxon(taxid='131567', rank=None, name='cellular organisms')
-    Taxon(taxid='2759', rank=None, name='Eukaryota')
-    Taxon(taxid='33154', rank=None, name='Opisthokonta')
-    Taxon(taxid='33208', rank=None, name='Metazoa')
-    Taxon(taxid='6072', rank=None, name='Eumetazoa')
-    Taxon(taxid='33213', rank=None, name='Bilateria')
-    Taxon(taxid='33317', rank=None, name='Protostomia')
-    Taxon(taxid='1206794', rank=None, name='Ecdysozoa')
-    Taxon(taxid='88770', rank=None, name='Panarthropoda')
-    Taxon(taxid='6656', rank=None, name='Arthropoda')
-    Taxon(taxid='197563', rank=None, name='Mandibulata')
-    Taxon(taxid='197562', rank=None, name='Pancrustacea')
-    Taxon(taxid='6960', rank=None, name='Hexapoda')
-    Taxon(taxid='50557', rank=None, name='Insecta')
-    Taxon(taxid='85512', rank=None, name='Dicondylia')
-    Taxon(taxid='7496', rank=None, name='Pterygota')
-    Taxon(taxid='33340', rank=None, name='Neoptera')
-    Taxon(taxid='33392', rank=None, name='Holometabola')
-    Taxon(taxid='7399', rank='order', name='Hymenoptera')
-    1973489 1973489 species
-    Taxon(taxid='131567', rank=None, name='cellular organisms')
-    Taxon(taxid='2', rank=None, name='Bacteria')
-    Taxon(taxid='1783272', rank=None, name='Terrabacteria group')
-    Taxon(taxid='1239', rank=None, name='Firmicutes')
-    Taxon(taxid='91061', rank=None, name='Bacilli')
-    Taxon(taxid='1385', rank=None, name='Bacillales')
-    Taxon(taxid='186817', rank=None, name='Bacillaceae')
-    Taxon(taxid='1386', rank=None, name='Bacillus')
-    Taxon(taxid='86661', rank=None, name='Bacillus cereus group')
-    Taxon(taxid='1973489', rank='species', name='Bacillus sp. ISSFR-25F')
-    >>> len(result)
-    10
-    >>> print(result)  # string representation is the raw output from taxonkit
-    1973489 1973489 cellular organisms;Bacteria;Terrabacteria group;Firmicutes;Bacilli;Bacillales;Bacillaceae;Bacillus;Bacillus cereus group;Bacillus sp. ISSFR-25F    131567;2;1783272;1239;91061;1385;186817;1386;86661;1973489      species
+    >>> result = pytaxonkit.lineage([7399, 1973489])
+    >>> type(result)
+    <class 'pandas.core.frame.DataFrame'>
+    >>> result
+         TaxID     Code                                                                             Lineage                          LineageTaxIDs     Rank                                                                                                                                                                                                            FullLineage                                                                                                 FullLineageTaxIDs
+    0     7399     7399                                         Eukaryota;Arthropoda;Insecta;Hymenoptera;;;                2759;6656;50557;7399;;;    order  cellular organisms;Eukaryota;Opisthokonta;Metazoa;Eumetazoa;Bilateria;Protostomia;Ecdysozoa;Panarthropoda;Arthropoda;Mandibulata;Pancrustacea;Hexapoda;Insecta;Dicondylia;Pterygota;Neoptera;Holometabola;Hymenoptera  131567;2759;33154;33208;6072;33213;33317;1206794;88770;6656;197563;197562;6960;50557;85512;7496;33340;33392;7399
+    1  1973489  1973489  Bacteria;Firmicutes;Bacilli;Bacillales;Bacillaceae;Bacillus;Bacillus sp. ISSFR-25F  2;1239;91061;1385;186817;1386;1973489  species                                                                        cellular organisms;Bacteria;Terrabacteria group;Firmicutes;Bacilli;Bacillales;Bacillaceae;Bacillus;Bacillus cereus group;Bacillus sp. ISSFR-25F                                                        131567;2;1783272;1239;91061;1385;186817;1386;86661;1973489
+    >>>
+    >>>
+    >>> result = pytaxonkit.lineage(['1382510', '929505', '390333'], formatstr='{f};{g};{s};{S}', debug=True)
+    >>> result
+         TaxID     Code                                                                                               Lineage         LineageTaxIDs     Rank                                                                                                                                                                                                                                                FullLineage                                                 FullLineageTaxIDs
+    0  1382510  1382510                                                     Enterobacteriaceae;Salmonella;Salmonella bongori;        543;590;54736;  no rank                                    cellular organisms;Bacteria;Proteobacteria;Gammaproteobacteria;Enterobacterales;Enterobacteriaceae;Salmonella;Salmonella bongori;Salmonella bongori serovar 48:z41:--;Salmonella bongori serovar 48:z41:-- str. RKS3044              131567;2;1224;1236;91347;543;590;54736;41527;1382510
+    1   929505   929505                                                     Clostridiaceae;Clostridium;Clostridium botulinum;      31979;1485;1491;  no rank                                                        cellular organisms;Bacteria;Terrabacteria group;Firmicutes;Clostridia;Clostridiales;Clostridiaceae;Clostridium;Clostridium botulinum;Clostridium botulinum C;Clostridium botulinum C str. Stockholm  131567;2;1783272;1239;186801;186802;31979;1485;1491;36828;929505
+    2   390333   390333  Lactobacillaceae;Lactobacillus;Lactobacillus delbrueckii;Lactobacillus delbrueckii subsp. bulgaricus  33958;1578;1584;1585  no rank  cellular organisms;Bacteria;Terrabacteria group;Firmicutes;Bacilli;Lactobacillales;Lactobacillaceae;Lactobacillus;Lactobacillus delbrueckii;Lactobacillus delbrueckii subsp. bulgaricus;Lactobacillus delbrueckii subsp. bulgaricus ATCC 11842 = JCM 1002    131567;2;1783272;1239;91061;186826;33958;1578;1584;1585;390333
     >>>
     '''  # noqa: E501
     idlist = '\n'.join(map(str, ids))
     arglist = ['taxonkit', 'lineage', '--show-lineage-taxids', '--show-rank', '--show-status-code']
     if debug:
         log(*arglist)  # pragma: no cover
-    proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-    out, err = proc.communicate(input=idlist)
-    for line in out.strip().split('\n'):
-        yield LineageResult(line)
+    with NamedTemporaryFile(suffix='-lineage.txt') as lineagefile:
+        proc = Popen(arglist, stdin=PIPE, stdout=lineagefile, stderr=PIPE, universal_newlines=True)
+        out, err = proc.communicate(input=idlist)
+        if proc.returncode != 0:
+            raise TaxonKitCLIError(err)  # pragma: no cover
+        lineagefile.flush()
+        os.fsync(lineagefile.fileno())
+        formatargs = []
+        if formatstr:
+            formatargs = ['--format', formatstr]
+        arglist = [
+            'taxonkit', 'reformat', *formatargs, '--lineage-field', '3', '--show-lineage-taxids',
+            lineagefile.name
+        ]
+        if debug:
+            log(*arglist)
+        proc = Popen(arglist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+        out, err = proc.communicate()
+        if proc.returncode != 0:
+            raise TaxonKitCLIError(err)  # pragma: no cover
+        columnorderin = [
+            'TaxID', 'Code', 'FullLineage', 'FullLineageTaxIDs', 'Rank', 'Lineage', 'LineageTaxIDs'
+        ]
+        columnorderout = [
+            'TaxID', 'Code', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage', 'FullLineageTaxIDs'
+        ]
+        data = pandas.read_csv(
+            StringIO(out), sep='\t', header=None, names=columnorderin, index_col=False
+        )
+        data = data[columnorderout]
+        return data
