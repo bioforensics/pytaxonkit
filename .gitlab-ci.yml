@@ -6,6 +6,5 @@ testsuite:
     - mkdir ~/.taxonkit && pushd ~/.taxonkit && wget ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz && tar -xzf taxdump.tar.gz && popd
     - conda env create -f environment.yaml
     - source activate pytaxonkit
-    - wget https://github.com/shenwei356/taxonkit/files/4547454/taxonkit_linux_amd64.tar.gz && tar -xzf taxonkit_linux_amd64.tar.gz && mv taxonkit $(conda info --base)/envs/pytaxonkit/bin
     - make test
     - make style
