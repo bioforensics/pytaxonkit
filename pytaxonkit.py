@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # -------------------------------------------------------------------------------------------------
 # Copyright (c) 2020, Battelle National Biodefense Institute.
 #
@@ -41,11 +39,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # -------------------------------------------------------------------------------------------------
 
-from collections import namedtuple, Mapping
+from collections import namedtuple
 from io import StringIO
 import json
-import os
+from os import fsync
 import pandas
+from pandas import UInt32Dtype, StringDtype
+import pytest
 from subprocess import Popen, PIPE
 import sys
 from tempfile import NamedTemporaryFile
@@ -59,9 +59,6 @@ def log(*args, level='debug'):  # pragma: no cover
     print(f'[pytaxonkit::{level}]', *args, file=sys.stderr)
 
 
-BasicTaxon = namedtuple('Taxon', ['taxid', 'rank', 'name'])
-
-
 class TaxonKitCLIError(RuntimeError):
     pass
 
@@ -69,6 +66,9 @@ class TaxonKitCLIError(RuntimeError):
 # -------------------------------------------------------------------------------------------------
 # taxonkit list
 # -------------------------------------------------------------------------------------------------
+
+BasicTaxon = namedtuple('Taxon', ['taxid', 'rank', 'name'])
+
 
 class ListResult():
     def __init__(self, jsondata):
@@ -106,67 +106,40 @@ class ListResult():
 def list(ids, raw=False, debug=False):
     '''list taxon tree of given taxids
 
-    Returns a `pytaxonkit.ListResult` object by default. NOTE: while this data structure provides
-    convenient programmatic access to the result, it introduces a significant amount of overhead.
-    For very large results, it is recommended to set `raw=True` so that the raw JSON data (loaded
-    into a dictionary) is returned.
+    Parameters
+    ----------
+    ids : list or iterable
+        A list of taxids (ints or strings are ok)
+    raw : bool, default False
+        The `ListResult` object returned by default provides convenient programmatic access to the
+        result, but it also introduces a significant amount of overhead; for very large results, it
+        is recommended to set `raw=True` so that the raw JSON data (loaded into a dictionary) is
+        returned
+    debug : bool, default False
+        Print debugging output, e.g., system calls to `taxonkit`
+
+    Returns
+    -------
+    ListResult or dict
+        The `pytaxonkit.ListResult` class provides convenient access to the full taxonomic tree
+        associated with each top level `taxonkit list` result. When `raw=True`, a dict built from
+        the raw JSON is returned.
+
+    Examples
+    --------
 
     >>> import pytaxonkit
-    >>> result = pytaxonkit.list([8204, 2468])
-    >>> for taxon, tree in result:
-    ...   print('[Result]', taxon.name, taxon.taxid, taxon.rank, sep='\t')
-    ...
-    [Result]    Anarhichas lupus    8204    species
-    [Result]    Plasmid NR79        2468    species
-    >>>
-    >>>
     >>> result = pytaxonkit.list([13685, 9903])
-    >>> len(result)
-    2
-    >>> type(result)
-    <class 'pytaxonkit.ListResult'>
     >>> for taxon, tree in result:
-    ...     print(f'[Top level result] {taxon.name} ({taxon.taxid})')
     ...     subtaxa = [t for t in tree.traverse]
-    ...     print(f'    - {len(subtaxa)} sub taxa; first 5:')
-    ...     for subtaxon in subtaxa[:5]:
-    ...         print('        -', subtaxon)
+    ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
     ...
-    [Top level result] Solenopsis (13685)
-        - 198 sub taxa; first 5:
-            - Taxon(taxid=13686, rank='species', name='Solenopsis invicta')
-            - Taxon(taxid=30203, rank='species', name='Solenopsis richteri')
-            - Taxon(taxid=121131, rank='species', name='Solenopsis geminata')
-            - Taxon(taxid=176590, rank='species', name='Solenopsis amblychila')
-            - Taxon(taxid=176591, rank='species', name='Solenopsis aurea')
-    [Top level result] Bos (9903)
-        - 26 sub taxa; first 5:
-            - Taxon(taxid=9904, rank='species', name='Bos gaurus')
-            - Taxon(taxid=1383418, rank='subspecies', name='Bos gaurus gaurus')
-            - Taxon(taxid=9906, rank='species', name='Bos javanicus')
-            - Taxon(taxid=380177, rank='subspecies', name='Bos javanicus birmanicus')
-            - Taxon(taxid=659500, rank='subspecies', name='Bos javanicus javanicus')
-    >>>
-    >>>
-    >>> result = pytaxonkit.list([121498])
-    >>> print(result)  # string representation of a `pytaxonkit.ListResult` is the raw JSON
-    {
-        "121498 [genus] Bothriomyrmex": {
-            "121499 [species] Bothriomyrmex meridionalis": {},
-            "369102 [species] Bothriomyrmex hispanicus": {},
-            "604499 [species] Bothriomyrmex paradoxus": {},
-            "604506 [species] Bothriomyrmex saundersi": {},
-            "2625763 [no rank] unclassified Bothriomyrmex": {
-                "1297180 [species] Bothriomyrmex sp. MAS001": {}
-            }
-        }
-    }
-    >>>
-    >>>
-    >>> result = pytaxonkit.list([9605], raw=True)  # setting `raw=True` returns only the raw JSON
-    >>> print(result)
+    Top level result: Solenopsis (13685); 198 related taxa
+    Top level result: Bos (9903); 26 related taxa
+    >>> subtaxa[0]
+    Taxon(taxid=9904, rank='species', name='Bos gaurus')
+    >>> pytaxonkit.list([9605], raw=True)
     {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}}, '1425170 [species] Homo heidelbergensis': {}}}
-    >>>
     '''  # noqa: E501
     idlist = ','.join(map(str, ids))
     arglist = ['taxonkit', 'list', '--json', '--show-name', '--show-rank', '--ids', idlist]
@@ -182,32 +155,97 @@ def list(ids, raw=False, debug=False):
         return ListResult(out)
 
 
+def test_list_leaves(capsys):
+    result = list([8204, 2468], debug=True)  # Nota bene: `list` here is `pytaxonkit.list`
+    assert len(result) == 2
+    top_level_taxa = [taxon for taxon, tree in result]
+    sub_trees = [tree for taxon, tree in result]
+    assert top_level_taxa == [
+        BasicTaxon(taxid=8204, rank='species', name='Anarhichas lupus'),
+        BasicTaxon(taxid=2468, rank='species', name='Plasmid NR79')
+    ]
+    assert sub_trees == [{}, {}]
+    out, err = capsys.readouterr()
+    data = '[pytaxonkit::debug] taxonkit list --json --show-name --show-rank --ids 8204,2468'
+    assert err.strip() == data
+
+
+@pytest.mark.parametrize('taxid,taxon,subtaxon,subsubtaxon', [
+    (
+        83882,
+        BasicTaxon(taxid=83882, rank='genus', name='Apogon'),
+        BasicTaxon(taxid=638272, rank='subgenus', name='Apogon'),
+        BasicTaxon(taxid=308069, rank='species', name='Apogon maculatus'),
+    ),
+    (
+        44568,
+        BasicTaxon(taxid=44568, rank='genus', name='Parasimulium'),
+        BasicTaxon(taxid=61057, rank='subgenus', name='Parasimulium'),
+        BasicTaxon(taxid=61060, rank='species', name='Parasimulium crosskeyi'),
+    ),
+])
+def test_list_genera(taxid, taxon, subtaxon, subsubtaxon):
+    result = list([taxid])  # Nota bene: `list` here is `pytaxonkit.list`
+    tax, tree = next(iter(result))
+    subtax, subtree = next(iter(tree))
+    subsubtax, subsubtree = next(iter(subtree))
+    assert tax == taxon
+    assert subtax == subtaxon
+    assert subsubtax == subsubtaxon
+    assert subsubtree == {}
+
+
+def test_list_str():
+    result = list(['20019'])
+    with open('sweetleaf.json', 'r') as fh:
+        assert str(result) == fh.read().strip()
+
+
+# -------------------------------------------------------------------------------------------------
+# taxonkit lineage
+# -------------------------------------------------------------------------------------------------
+
+
 def lineage(ids, formatstr=None, debug=False):
     '''query lineage of given taxids
 
-    Runs `taxonkit lineage` and `taxonkit reformat` to provide both a full and a "standard" lineage
-    for each taxid provided; by default `formatstr=None` and the standard format string is used
-    with `taxonkit reformat`; see the [taxonkit reformat documentation]
-    (https://bioinf.shenwei.me/taxonkit/usage/#reformat) for instructions on overriding the
-    default.
+    Executes `taxonkit lineage` and `taxonkit reformat` to provide both a full and a "standard"
+    lineage for each taxid in `ids`.
 
+    Parameters
+    ----------
+    ids : list or iterable
+        A list of taxids (ints or strings are ok)
+    formatstr : str, default None
+        See [taxonkit reformat documentation](https://bioinf.shenwei.me/taxonkit/usage/#reformat)
+        for instructions on setting `formatstr` to override the default "standard" lineage format
+    debug : bool, default False
+        Print debugging output, e.g., system calls to `taxonkit`
+
+    Returns
+    -------
+    DataFrame
+        A two-dimensional data structure. The `Code` column refers to the status code returned by
+        `taxonkit lineage`: -1 for queries not found, 0 for deleted taxids (in `delnodes.dmp`), new
+        taxids for merged taxids (in `merged.dmp`), and own taxid for queries found in `nodes.dmp`.
+        See [taxonkit lineage](https://bioinf.shenwei.me/taxonkit/usage/#lineage) for details.
+
+    Examples
+    --------
     >>> import pytaxonkit
     >>> result = pytaxonkit.lineage([7399, 1973489])
-    >>> type(result)
-    <class 'pandas.core.frame.DataFrame'>
-    >>> result
-         TaxID     Code                                                                             Lineage                          LineageTaxIDs     Rank                                                                                                                                                                                                            FullLineage                                                                                                 FullLineageTaxIDs
-    0     7399     7399                                         Eukaryota;Arthropoda;Insecta;Hymenoptera;;;                2759;6656;50557;7399;;;    order  cellular organisms;Eukaryota;Opisthokonta;Metazoa;Eumetazoa;Bilateria;Protostomia;Ecdysozoa;Panarthropoda;Arthropoda;Mandibulata;Pancrustacea;Hexapoda;Insecta;Dicondylia;Pterygota;Neoptera;Holometabola;Hymenoptera  131567;2759;33154;33208;6072;33213;33317;1206794;88770;6656;197563;197562;6960;50557;85512;7496;33340;33392;7399
-    1  1973489  1973489  Bacteria;Firmicutes;Bacilli;Bacillales;Bacillaceae;Bacillus;Bacillus sp. ISSFR-25F  2;1239;91061;1385;186817;1386;1973489  species                                                                        cellular organisms;Bacteria;Terrabacteria group;Firmicutes;Bacilli;Bacillales;Bacillaceae;Bacillus;Bacillus cereus group;Bacillus sp. ISSFR-25F                                                        131567;2;1783272;1239;91061;1385;186817;1386;86661;1973489
-    >>>
-    >>>
-    >>> result = pytaxonkit.lineage(['1382510', '929505', '390333'], formatstr='{f};{g};{s};{S}', debug=True)
-    >>> result
-         TaxID     Code                                                                                               Lineage         LineageTaxIDs     Rank                                                                                                                                                                                                                                                FullLineage                                                 FullLineageTaxIDs
-    0  1382510  1382510                                                     Enterobacteriaceae;Salmonella;Salmonella bongori;        543;590;54736;  no rank                                    cellular organisms;Bacteria;Proteobacteria;Gammaproteobacteria;Enterobacterales;Enterobacteriaceae;Salmonella;Salmonella bongori;Salmonella bongori serovar 48:z41:--;Salmonella bongori serovar 48:z41:-- str. RKS3044              131567;2;1224;1236;91347;543;590;54736;41527;1382510
-    1   929505   929505                                                     Clostridiaceae;Clostridium;Clostridium botulinum;      31979;1485;1491;  no rank                                                        cellular organisms;Bacteria;Terrabacteria group;Firmicutes;Clostridia;Clostridiales;Clostridiaceae;Clostridium;Clostridium botulinum;Clostridium botulinum C;Clostridium botulinum C str. Stockholm  131567;2;1783272;1239;186801;186802;31979;1485;1491;36828;929505
-    2   390333   390333  Lactobacillaceae;Lactobacillus;Lactobacillus delbrueckii;Lactobacillus delbrueckii subsp. bulgaricus  33958;1578;1584;1585  no rank  cellular organisms;Bacteria;Terrabacteria group;Firmicutes;Bacilli;Lactobacillales;Lactobacillaceae;Lactobacillus;Lactobacillus delbrueckii;Lactobacillus delbrueckii subsp. bulgaricus;Lactobacillus delbrueckii subsp. bulgaricus ATCC 11842 = JCM 1002    131567;2;1783272;1239;91061;186826;33958;1578;1584;1585;390333
-    >>>
+    >>> result.columns
+    Index(['TaxID', 'Code', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage', 'FullLineageTaxIDs'], dtype='object')
+    >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
+         TaxID                                                                             Lineage                          LineageTaxIDs
+    0     7399                                         Eukaryota;Arthropoda;Insecta;Hymenoptera;;;                2759;6656;50557;7399;;;
+    1  1973489  Bacteria;Firmicutes;Bacilli;Bacillales;Bacillaceae;Bacillus;Bacillus sp. ISSFR-25F  2;1239;91061;1385;186817;1386;1973489
+    >>> result = pytaxonkit.lineage(['1382510', '929505', '390333'], formatstr='{f};{g};{s};{S}')
+    >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
+         TaxID                                                                                               Lineage         LineageTaxIDs
+    0  1382510                                                     Enterobacteriaceae;Salmonella;Salmonella bongori;        543;590;54736;
+    1   929505                                                     Clostridiaceae;Clostridium;Clostridium botulinum;      31979;1485;1491;
+    2   390333  Lactobacillaceae;Lactobacillus;Lactobacillus delbrueckii;Lactobacillus delbrueckii subsp. bulgaricus  33958;1578;1584;1585
     '''  # noqa: E501
     idlist = '\n'.join(map(str, ids))
     arglist = ['taxonkit', 'lineage', '--show-lineage-taxids', '--show-rank', '--show-status-code']
@@ -219,7 +257,7 @@ def lineage(ids, formatstr=None, debug=False):
         if proc.returncode != 0:
             raise TaxonKitCLIError(err)  # pragma: no cover
         lineagefile.flush()
-        os.fsync(lineagefile.fileno())
+        fsync(lineagefile.fileno())
         formatargs = []
         if formatstr:
             formatargs = ['--format', formatstr]
@@ -246,45 +284,71 @@ def lineage(ids, formatstr=None, debug=False):
         return data
 
 
+def test_lineage(capsys):
+    result = lineage(['446045', '265720', '2507530', '106649'], debug=True)
+    assert result.TaxID.equals(pandas.Series([446045, 265720, 2507530, 106649]))
+    assert result.Code.equals(pandas.Series([446045, 265720, 2507530, 106649]))
+    assert result.Lineage.equals(pandas.Series([
+        'Eukaryota;Arthropoda;Insecta;Diptera;Drosophilidae;Drosophila;',
+        'Bacteria;Bacteroidetes;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;'
+        'Porphyromonas genomosp. P3',
+        'Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula species',
+        'Bacteria;Proteobacteria;Gammaproteobacteria;Pseudomonadales;Moraxellaceae;Acinetobacter;'
+        'Acinetobacter guillouiae',
+    ]))
+    assert result.LineageTaxIDs.equals(pandas.Series([
+        '2759;6656;50557;7147;7214;7215;',
+        '2;976;200643;171549;171551;836;265720',
+        '2759;5204;155619;452342;5401;5402;2507520',
+        '2;1224;1236;72274;468;469;106649',
+    ]))
+    assert result.Rank.equals(pandas.Series([
+        'no rank', 'species', 'subspecies', 'species'
+    ]))
+
+    out, err = capsys.readouterr()
+    assert 'taxonkit lineage --show-lineage-taxids --show-rank --show-status-code' in err
+    assert 'taxonkit reformat --lineage-field 3 --show-lineage-taxids' in err
+
+
+# -------------------------------------------------------------------------------------------------
+# taxonkit name2taxid
+# -------------------------------------------------------------------------------------------------
+
+
 def name2taxid(names, sciname=False, debug=False):
     '''query taxid by taxon scientific name
 
-    By default, both scientific names and synonyms are supported. Set `sciname=True` to ignore
-    synonyms.
+    Parameters
+    ----------
 
+    names : list or iterable
+        A list of species names or synonyms
+    sciname: bool, default False
+        By default, both scientific names and synonyms are supported; when `sciname=True`, synonyms
+        are ignored
+    debug : bool, default False
+        Print debugging output, e.g., system calls to `taxonkit`
+
+    Returns
+    -------
+    DataFrame
+        A two-dimensional data structure.
+
+    Examples
+    --------
     >>> import pytaxonkit
-    >>> names = [
-    ...     'Homo sapiens', 'Akkermansia muciniphila ATCC BAA-835',
-    ...     'Akkermansia muciniphila', 'Mouse Intracisternal A-particle',
-    ...     'Wei Shen', 'uncultured murine large bowel bacterium BAC 54B',
-    ...     'Croceibacter phage P2559Y'
-    ... ]
-    >>> result = pytaxonkit.name2taxid(names, debug=True)
-    >>> result
-                                                  Name    TaxID     Rank
-    0                                     Homo sapiens     9606  species
-    1             Akkermansia muciniphila ATCC BAA-835   349741  no rank
-    2                          Akkermansia muciniphila   239935  species
-    3                  Mouse Intracisternal A-particle    11932  species
-    4                                         Wei Shen     <NA>     <NA>
-    5  uncultured murine large bowel bacterium BAC 54B   314101  species
-    6                        Croceibacter phage P2559Y  1327037  species
-    >>>
-    >>>
     >>> names = ['Phyllobolus spinuliferus', 'Alteromonas putrefaciens', 'Rexia erectus']
-    >>> result = pytaxonkit.name2taxid(names)
-    >>> result
+    >>> pytaxonkit.name2taxid(names)
                            Name   TaxID     Rank
     0  Phyllobolus spinuliferus  359607  species
     1  Alteromonas putrefaciens      24  species
     2             Rexia erectus  262902  species
-    >>> result = pytaxonkit.name2taxid(names, sciname=True)
-    >>> result
+    >>> pytaxonkit.name2taxid(names, sciname=True)
                            Name  TaxID  Rank
     0  Phyllobolus spinuliferus   <NA>  <NA>
     1  Alteromonas putrefaciens   <NA>  <NA>
     2             Rexia erectus   <NA>  <NA>
-    >>>
     '''
     namelist = '\n'.join(map(str, names))
     arglist = ['taxonkit', 'name2taxid', '--show-rank']
@@ -297,11 +361,22 @@ def name2taxid(names, sciname=False, debug=False):
     if proc.returncode != 0:
         raise TaxonKitCLIError(err)  # pragma: no cover
     columns = {
-        'Name': pandas.StringDtype(),
-        'TaxID': pandas.UInt32Dtype(),
-        'Rank': pandas.StringDtype()
+        'Name': StringDtype(),
+        'TaxID': UInt32Dtype(),
+        'Rank': StringDtype(),
     }
     data = pandas.read_csv(
         StringIO(out), sep='\t', header=None, names=columns, dtype=columns, index_col=False
     )
     return data
+
+
+def test_name2taxid(capsys):
+    result = name2taxid(['Chaetocerotales', 'Diptera', 'Rickettsiales', 'Hypocreales'], debug=True)
+    taxids = pandas.Series([265576, 7147, 766, 5125], dtype=UInt32Dtype())
+    ranks = pandas.Series(['order', 'order', 'order', 'order'], dtype=StringDtype())
+    assert result.TaxID.equals(taxids)
+    assert result.Rank.equals(ranks)
+
+    out, err = capsys.readouterr()
+    assert '[pytaxonkit::debug] taxonkit name2taxid --show-rank' in err
