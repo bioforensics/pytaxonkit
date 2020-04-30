@@ -63,6 +63,14 @@ class NCBITaxonomyDumpNotFoundError(FileNotFoundError):
     pass
 
 
+def _get_taxonkit_version():
+    proc = Popen(['taxonkit', 'version'], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    out, err = proc.communicate()
+    if proc.returncode != 0:
+        raise TaxonKitCLIError(err)  # pragma: no cover
+    return out.strip()
+
+
 def log(*args, level='debug'):  # pragma: no cover
     print(f'[pytaxonkit::{level}]', *args, file=sys.stderr)
 
@@ -103,6 +111,9 @@ def test_validate_threads(capsys):
     assert out == ''
     m = '[pytaxonkit::warning] invalid thread count "StuffedCrust"; resetting to taxonkit default'
     assert err.strip() == m
+
+
+__taxonkitversion__ = _get_taxonkit_version()
 
 
 # -------------------------------------------------------------------------------------------------
