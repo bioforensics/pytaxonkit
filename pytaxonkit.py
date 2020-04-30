@@ -328,11 +328,15 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
             raise TaxonKitCLIError(err)  # pragma: no cover
         lineagefile.flush()
         os.fsync(lineagefile.fileno())
-        formatargs = []
+        extraargs = []
         if formatstr:
-            formatargs = ['--format', formatstr]
+            extraargs.extend(('--format', formatstr))
+        if threads:
+            extraargs.extend(('--threads', validate_threads(threads)))
+        if data_dir:
+            extraargs.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
         arglist = [
-            'taxonkit', 'reformat', *formatargs, '--lineage-field', '3', '--show-lineage-taxids',
+            'taxonkit', 'reformat', *extraargs, '--lineage-field', '3', '--show-lineage-taxids',
             lineagefile.name
         ]
         if debug:
