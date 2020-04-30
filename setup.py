@@ -60,6 +60,7 @@ setup(
     author_email='daniel.standage@nbacc.dhs.gov',
     py_modules=['pytaxonkit', '_version'],
     python_requires='>=3.6',
+    install_requires=['pytest>=5.4'],
     classifiers=[
         'Environment :: Console',
         'Framework :: IPython',
