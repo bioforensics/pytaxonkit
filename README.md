@@ -74,6 +74,16 @@ Taxon(taxid=9904, rank='species', name='Bos gaurus')
 {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies]Homo sapiens subsp. 'Denisova'": {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmentalsample': {}}}, '1425170 [species] Homo heidelbergensis': {}}}
 ```
 
+### version
+
+```python
+>>> import pytaxonkit
+>>> pytaxonkit.__version__
+0.6
+>>> pytaxonkit.__taxonkitversion__
+0.6.0
+```
+
 
 ## License
 
