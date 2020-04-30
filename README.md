@@ -1,17 +1,22 @@
 # pytaxonkit
 
 Python bindings for the [TaxonKit library](https://bioinf.shenwei.me/taxonkit/).
+Results of queries are returned as [pandas](https://pandas.pydata.org/) data frames, dictionaries, and other convenient data structures.
 
 
 ## Install
 
 Installation with Conda is recommended.
+(See `environment.yaml` for details on prerequisites if you want to try a different installation method.)
 
 ```
 conda install -c bioconda pytaxonkit
 ```
 
-See `environment.yaml` for details on prerequisites if you want to try a different installation method.
+Please follow the [taxonkit instructions](https://bioinf.shenwei.me/taxonkit/usage/#taxonkit) for downloading the NCBI Taxonomy database dump files.
+By default, taxonkit and pytaxonkit search for these files in `~/.taxonkit/`, but this directory can be overridden by setting the `data_dir` appropriately for the functions described below.
+Execute `help(pytaxonkit.name2taxid)` (and so on) from the Python interpreter for more details.
+
 
 ## Usage
 

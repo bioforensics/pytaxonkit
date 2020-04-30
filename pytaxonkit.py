@@ -42,7 +42,7 @@
 from collections import namedtuple
 from io import StringIO
 import json
-from os import fsync
+import os
 import pandas
 from pandas import UInt32Dtype, StringDtype
 import pytest
@@ -55,12 +55,54 @@ __version__ = get_versions()['version']
 del get_versions
 
 
+class TaxonKitCLIError(RuntimeError):
+    pass
+
+
+class NCBITaxonomyDumpNotFoundError(FileNotFoundError):
+    pass
+
+
 def log(*args, level='debug'):  # pragma: no cover
     print(f'[pytaxonkit::{level}]', *args, file=sys.stderr)
 
 
-class TaxonKitCLIError(RuntimeError):
-    pass
+def validate_data_dir(path):
+    filepath = os.path.join(path, 'nodes.dmp')
+    if not os.path.isfile(filepath) or os.stat(filepath).st_size == 0:
+        raise NCBITaxonomyDumpNotFoundError(path)
+    return os.path.realpath(path)
+
+
+def test_validate_data_dir():
+    realdir = os.path.realpath(os.path.expanduser('~/.taxonkit/'))
+    assert validate_data_dir(os.path.expanduser('~/.taxonkit/')) == realdir
+    with pytest.raises(NCBITaxonomyDumpNotFoundError):
+        assert validate_data_dir('/path/to/a/non/existent/directory/taxonkit')
+
+
+def validate_threads(value):
+    if value is None:
+        return None
+    try:
+        threadcount = int(value)
+        return str(threadcount)
+    except ValueError:
+        log(f'invalid thread count "{value}"; resetting to taxonkit default', level='warning')
+        return None
+
+
+def test_validate_threads(capsys):
+    assert validate_threads(None) is None
+    assert validate_threads(2) == '2'
+    assert validate_threads('16') == '16'
+    out, err = capsys.readouterr()
+    assert out == err == ''
+    assert validate_threads('StuffedCrust') is None
+    out, err = capsys.readouterr()
+    assert out == ''
+    m = '[pytaxonkit::warning] invalid thread count "StuffedCrust"; resetting to taxonkit default'
+    assert err.strip() == m
 
 
 # -------------------------------------------------------------------------------------------------
@@ -103,7 +145,7 @@ class ListResult():
             yield taxon
 
 
-def list(ids, raw=False, debug=False):
+def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     '''list taxon tree of given taxids
 
     Parameters
@@ -115,6 +157,11 @@ def list(ids, raw=False, debug=False):
         result, but it also introduces a significant amount of overhead; for very large results, it
         is recommended to set `raw=True` so that the raw JSON data (loaded into a dictionary) is
         returned
+    threads : int, default None
+        Override the default taxonkit threads setting
+    data_dir : str, default None
+        Specify the location of the NCBI taxonomy `.dmp` files; by default, taxonkit searches in
+        `~/.taxonkit/`
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
 
@@ -127,7 +174,6 @@ def list(ids, raw=False, debug=False):
 
     Examples
     --------
-
     >>> import pytaxonkit
     >>> result = pytaxonkit.list([13685, 9903])
     >>> for taxon, tree in result:
@@ -143,6 +189,10 @@ def list(ids, raw=False, debug=False):
     '''  # noqa: E501
     idlist = ','.join(map(str, ids))
     arglist = ['taxonkit', 'list', '--json', '--show-name', '--show-rank', '--ids', idlist]
+    if threads:
+        arglist.extend(('--threads', validate_threads(threads)))
+    if data_dir:
+        arglist.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
     if debug:
         log(*arglist)  # pragma: no cover
     proc = Popen(arglist, stdout=PIPE, stderr=PIPE, universal_newlines=True)
@@ -185,7 +235,7 @@ def test_list_leaves(capsys):
     ),
 ])
 def test_list_genera(taxid, taxon, subtaxon, subsubtaxon):
-    result = list([taxid])  # Nota bene: `list` here is `pytaxonkit.list`
+    result = list([taxid], threads=1)  # Nota bene: `list` here is `pytaxonkit.list`
     tax, tree = next(iter(result))
     subtax, subtree = next(iter(tree))
     subsubtax, subsubtree = next(iter(subtree))
@@ -206,7 +256,7 @@ def test_list_str():
 # -------------------------------------------------------------------------------------------------
 
 
-def lineage(ids, formatstr=None, debug=False):
+def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
     '''query lineage of given taxids
 
     Executes `taxonkit lineage` and `taxonkit reformat` to provide both a full and a "standard"
@@ -219,6 +269,11 @@ def lineage(ids, formatstr=None, debug=False):
     formatstr : str, default None
         See [taxonkit reformat documentation](https://bioinf.shenwei.me/taxonkit/usage/#reformat)
         for instructions on setting `formatstr` to override the default "standard" lineage format
+    threads : int
+        Override the default taxonkit threads setting
+    data_dir : str, default None
+        Specify the location of the NCBI taxonomy `.dmp` files; by default, taxonkit searches in
+        `~/.taxonkit/`
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
 
@@ -249,6 +304,10 @@ def lineage(ids, formatstr=None, debug=False):
     '''  # noqa: E501
     idlist = '\n'.join(map(str, ids))
     arglist = ['taxonkit', 'lineage', '--show-lineage-taxids', '--show-rank', '--show-status-code']
+    if threads:
+        arglist.extend(('--threads', validate_threads(threads)))
+    if data_dir:
+        arglist.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
     if debug:
         log(*arglist)  # pragma: no cover
     with NamedTemporaryFile(suffix='-lineage.txt') as lineagefile:
@@ -257,7 +316,7 @@ def lineage(ids, formatstr=None, debug=False):
         if proc.returncode != 0:
             raise TaxonKitCLIError(err)  # pragma: no cover
         lineagefile.flush()
-        fsync(lineagefile.fileno())
+        os.fsync(lineagefile.fileno())
         formatargs = []
         if formatstr:
             formatargs = ['--format', formatstr]
@@ -311,22 +370,33 @@ def test_lineage(capsys):
     assert 'taxonkit reformat --lineage-field 3 --show-lineage-taxids' in err
 
 
+def test_lineage_threads():
+    result = lineage(['200643'], threads=1)
+    assert result.FullLineage.iloc[0] == (
+        'cellular organisms;Bacteria;FCB group;Bacteroidetes/Chlorobi group;Bacteroidetes;'
+        'Bacteroidia'
+    )
+
+
 # -------------------------------------------------------------------------------------------------
 # taxonkit name2taxid
 # -------------------------------------------------------------------------------------------------
 
-
-def name2taxid(names, sciname=False, debug=False):
+def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False):
     '''query taxid by taxon scientific name
 
     Parameters
     ----------
-
     names : list or iterable
         A list of species names or synonyms
     sciname: bool, default False
         By default, both scientific names and synonyms are supported; when `sciname=True`, synonyms
         are ignored
+    threads : int
+        Override the default taxonkit threads setting
+    data_dir : str, default None
+        Specify the location of the NCBI taxonomy `.dmp` files; by default, taxonkit searches in
+        `~/.taxonkit/`
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
 
@@ -354,6 +424,10 @@ def name2taxid(names, sciname=False, debug=False):
     arglist = ['taxonkit', 'name2taxid', '--show-rank']
     if sciname:
         arglist.append('--sci-name')
+    if threads:
+        arglist.extend(('--threads', validate_threads(threads)))
+    if data_dir:
+        arglist.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
     if debug:
         log(*arglist)  # pragma: no cover
     proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
@@ -380,3 +454,8 @@ def test_name2taxid(capsys):
 
     out, err = capsys.readouterr()
     assert '[pytaxonkit::debug] taxonkit name2taxid --show-rank' in err
+
+
+def test_name2taxid_threads():
+    result = name2taxid(['FCB group'], threads='1')
+    assert str(result) == '        Name    TaxID     Rank\n0  FCB group  1783270  no rank'
