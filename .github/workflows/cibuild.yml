@@ -39,6 +39,12 @@ jobs:
           pip install .
           make devenv
       - name: Style check
-        run: make style
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate pytaxonkit
+          make style
       - name: Test with pytest
-        run: make test
+        run: |
+          source $(conda info --base)/etc/profile.d/conda.sh
+          conda activate pytaxonkit
+          make test
