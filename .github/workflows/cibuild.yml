@@ -24,7 +24,7 @@ jobs:
       - name: Install
         run: |
           conda env create -f environment.yaml
-          source activate pytaxonkit
+          conda activate pytaxonkit
           mkdir ~/.taxonkit && pushd ~/.taxonkit && wget ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz && tar -xzf taxdump.tar.gz && popd
           python -m pip install --upgrade pip
           pip install .
