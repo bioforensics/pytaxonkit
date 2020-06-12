@@ -11,3 +11,4 @@ dependencies:
  - pytest-cov>=2.8
  - pytest-xdist>=1.31
  - taxonkit>=0.6.0
+ - wget>=1.20

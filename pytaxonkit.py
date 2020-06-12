@@ -120,7 +120,7 @@ __taxonkitversion__ = _get_taxonkit_version()
 # taxonkit list
 # -------------------------------------------------------------------------------------------------
 
-BasicTaxon = namedtuple('Taxon', ['taxid', 'rank', 'name'])
+BasicTaxon = namedtuple('BasicTaxon', ['taxid', 'rank', 'name'])
 
 
 class ListResult():
@@ -194,7 +194,7 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     Top level result: Solenopsis (13685); 198 related taxa
     Top level result: Bos (9903); 26 related taxa
     >>> subtaxa[0]
-    Taxon(taxid=9904, rank='species', name='Bos gaurus')
+    BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
     >>> pytaxonkit.list([9605], raw=True)
     {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}}, '1425170 [species] Homo heidelbergensis': {}}}
     '''  # noqa: E501
