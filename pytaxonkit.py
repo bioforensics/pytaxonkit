@@ -191,12 +191,12 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     ...     subtaxa = [t for t in tree.traverse]
     ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
     ...
-    Top level result: Solenopsis (13685); 198 related taxa
-    Top level result: Bos (9903); 26 related taxa
+    Top level result: Solenopsis (13685); 293 related taxa
+    Top level result: Bos (9903); 27 related taxa
     >>> subtaxa[0]
     BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
     >>> pytaxonkit.list([9605], raw=True)
-    {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}}, '1425170 [species] Homo heidelbergensis': {}}}
+    {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}}, '1425170 [species] Homo heidelbergensis': {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}}}
     '''  # noqa: E501
     idlist = ','.join(map(str, ids))
     arglist = ['taxonkit', 'list', '--json', '--show-name', '--show-rank', '--ids', idlist]
@@ -541,4 +541,4 @@ def test_name2taxid(capsys):
 
 def test_name2taxid_threads():
     result = name2taxid(['FCB group'], threads='1')
-    assert str(result) == '        Name    TaxID     Rank\n0  FCB group  1783270  no rank'
+    assert str(result) == '        Name    TaxID   Rank\n0  FCB group  1783270  clade'
