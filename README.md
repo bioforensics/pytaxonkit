@@ -50,8 +50,8 @@ Execute `help(pytaxonkit.name2taxid)` (and so on) from the Python interpreter fo
 >>> import pytaxonkit
 >>> result = pytaxonkit.lineage([7399, 1973489])
 >>> result.columns
-Index(['TaxID', 'Code', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage',
-       'FullLineageTaxIDs'],
+Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank',
+       'FullLineage', 'FullLineageTaxIDs'],
       dtype='object')
 >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
      TaxID                                            Lineage                          LineageTaxIDs
@@ -60,6 +60,16 @@ Index(['TaxID', 'Code', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage',
 >>> result = pytaxonkit.lineage(['1382510', '929505', '390333'], formatstr='{f};{g};{s};{S}')
 >>> result['Lineage'].iloc[2]
 'Lactobacillaceae;Lactobacillus;Lactobacillus delbrueckii;Lactobacillus delbrueckii subsp. bulgaricus'
+```
+
+### name
+
+```python
+>>> import pytaxonkit
+>>> pytaxonkit.name(['274127', 511170])
+    TaxID        Name
+0  274127   Distathma
+1  511170  Delicatula
 ```
 
 ### list
@@ -84,9 +94,9 @@ Taxon(taxid=9904, rank='species', name='Bos gaurus')
 ```python
 >>> import pytaxonkit
 >>> pytaxonkit.__version__
-0.6
+0.6.1
 >>> pytaxonkit.__taxonkitversion__
-0.6.0
+0.6.1
 ```
 
 

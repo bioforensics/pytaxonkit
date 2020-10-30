@@ -298,14 +298,18 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
 
     Examples
     --------
+    >>> import pandas
     >>> import pytaxonkit
-    >>> result = pytaxonkit.lineage([7399, 1973489])
+    >>> result = pytaxonkit.lineage([1325911, 1649473, 1401311])
     >>> result.columns
-    Index(['TaxID', 'Code', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage', 'FullLineageTaxIDs'], dtype='object')
+    Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank',
+           'FullLineage', 'FullLineageTaxIDs'],
+          dtype='object')
     >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
-         TaxID                                                                             Lineage                          LineageTaxIDs
-    0     7399                                         Eukaryota;Arthropoda;Insecta;Hymenoptera;;;                2759;6656;50557;7399;;;
-    1  1973489  Bacteria;Firmicutes;Bacilli;Bacillales;Bacillaceae;Bacillus;Bacillus sp. ISSFR-25F  2;1239;91061;1385;186817;1386;1973489
+         TaxID                                                                 Lineage                         LineageTaxIDs
+    0  1325911     Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
+    1  1649473  Bacteria;Bacteroidetes;Cytophagia;Cytophagales;Cytophagaceae;Nibrella;    2;976;768503;768507;89373;1649473;
+    2  1401311        Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
     >>> result = pytaxonkit.lineage(['1382510', '929505', '390333'], formatstr='{f};{g};{s};{S}')
     >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
          TaxID                                                                                               Lineage         LineageTaxIDs
@@ -314,13 +318,16 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
     2   390333  Lactobacillaceae;Lactobacillus;Lactobacillus delbrueckii;Lactobacillus delbrueckii subsp. bulgaricus  33958;1578;1584;1585
     '''  # noqa: E501
     idlist = '\n'.join(map(str, ids))
-    arglist = ['taxonkit', 'lineage', '--show-lineage-taxids', '--show-rank', '--show-status-code']
+    arglist = [
+        'taxonkit', 'lineage', '--show-lineage-taxids', '--show-rank', '--show-status-code',
+        '--show-name'
+    ]
     if threads:
         arglist.extend(('--threads', validate_threads(threads)))
     if data_dir:
         arglist.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
     if debug:
-        log(*arglist)  # pragma: no cover
+        log(*arglist)
     with NamedTemporaryFile(suffix='-lineage.txt') as lineagefile:
         proc = Popen(arglist, stdin=PIPE, stdout=lineagefile, stderr=PIPE, universal_newlines=True)
         out, err = proc.communicate(input=idlist)
@@ -346,10 +353,12 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
         if proc.returncode != 0:
             raise TaxonKitCLIError(err)  # pragma: no cover
         columnorderin = [
-            'TaxID', 'Code', 'FullLineage', 'FullLineageTaxIDs', 'Rank', 'Lineage', 'LineageTaxIDs'
+            'TaxID', 'Code', 'FullLineage', 'FullLineageTaxIDs', 'Name', 'Rank', 'Lineage',
+            'LineageTaxIDs'
         ]
         columnorderout = [
-            'TaxID', 'Code', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage', 'FullLineageTaxIDs'
+            'TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage',
+            'FullLineageTaxIDs'
         ]
         data = pandas.read_csv(
             StringIO(out), sep='\t', header=None, names=columnorderin, index_col=False
@@ -358,12 +367,55 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
         return data
 
 
+def name(ids, data_dir=None, debug=False):
+    '''rapid taxon name retrieval
+
+    Uses the `--no-linage` option in `taxonkit lineage` for rapid retrieval of taxon names.
+
+    Parameters
+    ----------
+    ids : list or iterable
+        A list of taxids (ints or strings are ok)
+    data_dir : str, default None
+        Specify the location of the NCBI taxonomy `.dmp` files; by default, taxonkit searches in
+        `~/.taxonkit/`
+    debug : bool, default False
+        Print debugging output, e.g., system calls to `taxonkit`
+
+    Returns
+    -------
+    DataFrame
+        A two-dimensional data structure with TaxIDs and taxon names.
+
+    Examples
+    --------
+    >>> import pytaxonkit
+    >>> name(['151837', '2216222', '517824'])
+         TaxID                                Name
+    0   151837                    Hiraea smilacina
+    1  2216222         Paramyia sp. BIOUG21706-A10
+    2   517824  soil bacterium Cipr-S1N-M1LLLSSL-1
+    '''
+    idlist = '\n'.join(map(str, ids))
+    arglist = ['taxonkit', 'lineage', '--show-name', '--no-lineage']
+    if data_dir:
+        arglist.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
+    if debug:
+        log(*arglist)
+    proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    out, err = proc.communicate(input=idlist)
+    data = pandas.read_csv(
+        StringIO(out), sep='\t', header=None, names=['TaxID', 'Name'], index_col=False
+    )
+    return data
+
+
 def test_lineage(capsys):
-    result = lineage(['446045', '265720', '2507530', '106649'], debug=True)
-    assert result.TaxID.equals(pandas.Series([446045, 265720, 2507530, 106649]))
-    assert result.Code.equals(pandas.Series([446045, 265720, 2507530, 106649]))
+    result = lineage(['1082657', '265720', '2507530', '106649'], debug=True)
+    assert result.TaxID.equals(pandas.Series([1082657, 265720, 2507530, 106649]))
+    assert result.Code.equals(pandas.Series([1082657, 265720, 2507530, 106649]))
     assert result.Lineage.equals(pandas.Series([
-        'Eukaryota;Arthropoda;Insecta;Diptera;Drosophilidae;Drosophila;',
+        'Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95',
         'Bacteria;Bacteroidetes;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;'
         'Porphyromonas genomosp. P3',
         'Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula species',
@@ -371,13 +423,13 @@ def test_lineage(capsys):
         'Acinetobacter guillouiae',
     ]))
     assert result.LineageTaxIDs.equals(pandas.Series([
-        '2759;6656;50557;7147;7214;7215;',
+        '2759;555280;;1485168;33677;5754;1082657',
         '2;976;200643;171549;171551;836;265720',
         '2759;5204;155619;452342;5401;5402;2507520',
         '2;1224;1236;72274;468;469;106649',
     ]))
     assert result.Rank.equals(pandas.Series([
-        'no rank', 'species', 'subspecies', 'species'
+        'species', 'species', 'subspecies', 'species'
     ]))
 
     out, err = capsys.readouterr()
@@ -391,6 +443,22 @@ def test_lineage_threads():
         'cellular organisms;Bacteria;FCB group;Bacteroidetes/Chlorobi group;Bacteroidetes;'
         'Bacteroidia'
     )
+
+
+def test_lineage_name():
+    result = lineage(['526061'])
+    assert result.Name.iloc[0] == 'Henosepilachna sp. AGBA-2008'
+
+
+def test_name_debug(capsys):
+    result = name([207661, 1353792, 1597281], debug=True)
+    assert result.Name.equals(pandas.Series([
+        'Ahnfeltiopsis concinna',
+        'Picobirnavirus turkey/USA-1512/2010',
+        'Isopoda sp. NZAC 03013534',
+    ]))
+    out, err = capsys.readouterr()
+    assert 'taxonkit lineage --show-name --no-lineage' in err
 
 
 # -------------------------------------------------------------------------------------------------
