@@ -39,6 +39,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # -------------------------------------------------------------------------------------------------
 
+from builtins import list as pylist
 from collections import namedtuple
 from io import StringIO
 import json
@@ -370,7 +371,7 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
 def name(ids, data_dir=None, debug=False):
     '''rapid taxon name retrieval
 
-    Uses the `--no-linage` option in `taxonkit lineage` for rapid retrieval of taxon names.
+    Uses the `--no-lineage` option in `taxonkit lineage` for rapid retrieval of taxon names.
 
     Parameters
     ----------
@@ -486,7 +487,7 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False):
     Returns
     -------
     DataFrame
-        A two-dimensional data structure.
+        A two-dimensional data structure with names and corresponding taxids.
 
     Examples
     --------
@@ -542,3 +543,141 @@ def test_name2taxid(capsys):
 def test_name2taxid_threads():
     result = name2taxid(['FCB group'], threads='1')
     assert str(result) == '        Name    TaxID   Rank\n0  FCB group  1783270  clade'
+
+
+# -------------------------------------------------------------------------------------------------
+# taxonkit filter
+# -------------------------------------------------------------------------------------------------
+
+def filter(ids, equal_to=None, higher_than=None, lower_than=None, discard_norank=False,
+           discard_root=False, root_taxid=None, blacklist=None, rank_file=None, debug=False):
+    '''filter taxids by taxonomic rank (or a range of ranks)
+
+    Executes the `taxonkit filter` command to include or exclude taxa at the specified ranks.
+
+    Parameters
+    ----------
+    ids : list or iterable
+        A list of taxids (ints or strings are ok)
+    equal_to : str, default None
+        Keep only taxa at the specified rank
+    higher_than : str, default None
+        Keep only taxa ranked higher than the specified rank
+    lower_than : str, default None
+        Keep only taxa ranked lower than the specified rank
+    discard_norank : bool, default False
+        Discard ranks without an explicit ranking order
+    discard_root : bool, default False
+        Discard root taxon
+    root_taxid : int or str
+        override taxid of the root taxon
+    blacklist : list of strs
+        A list of ranks to exclude
+    rank_file : str, default None
+        Specify the location of the rank definition and order file; by default, taxonkit uses
+        `~/taxonkit/ranks.txt`
+    debug : bool, default False
+        Print debugging output, e.g., system calls to `taxonkit`
+
+    Returns
+    -------
+    list
+        A list of taxids passing the specified filters.
+
+    >>> import pytaxonkit
+    >>> taxids = [131567, 2, 1783257, 74201, 203494, 48461, 1647988, 239934, 239935, 349741]
+    >>> pytaxonkit.filter(taxids, blacklist=['family', 'species'])
+    [2, 74201, 203494, 48461, 239934, 349741]
+    >>> pytaxonkit.filter(taxids, lower_than='genus')
+    [239935, 349741]
+    '''
+    if higher_than is not None and lower_than is not None:
+        raise ValueError('cannot specify "higher_than" and "lower_than" simultaneously')
+    idlist = '\n'.join(map(str, ids))
+    arglist = ['taxonkit', 'filter']
+    if equal_to:
+        arglist.extend(['--equal-to', equal_to])
+    if higher_than:
+        arglist.extend(['--higher-than', higher_than])
+    if lower_than:
+        arglist.extend(['--lower-than', lower_than])
+    if discard_norank:
+        arglist.append('--discard-noranks')
+    if discard_root:
+        arglist.append('--discard-root')
+    if blacklist:
+        arglist.extend(['--black-list', ','.join(['no rank', 'clade'] + blacklist)])
+    if root_taxid:
+        arglist.extend(['--root-taxid', str(root_taxid)])
+    if rank_file:
+        arglist.extend(['--rank-file', rank_file])
+    if debug:
+        log(*arglist)
+    proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    out, err = proc.communicate(input=idlist)
+    data = pandas.read_csv(StringIO(out), header=None, names=['TaxID'], index_col=False)
+    return pylist(data.TaxID)
+
+
+def list_ranks(rank_file=None, debug=False):
+    '''list all supported taxonomic ranks
+
+    Parameters
+    ----------
+    rank_file : str, default None
+        Specify the location of the rank definition and order file; by default, taxonkit uses
+        `~/taxonkit/ranks.txt`
+    debug : bool, default False
+        Print debugging output, e.g., system calls to `taxonkit`
+
+    Returns
+    -------
+    list
+        A list of taxonomic ranks.
+
+    >>> import pytaxonkit
+    >>> ranks = pytaxonkit.list_ranks()
+    >>> ranks[:5]
+    ['life', 'domain', 'kingdom', 'subkingdom', 'infrakingdom']
+    '''
+    arglist = ['taxonkit', 'filter', '--list-order']
+    if rank_file:
+        arglist.extend(['--rank-file', rank_file])
+    if debug:
+        log(*arglist)
+    proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    out, err = proc.communicate(input='')
+    data = pandas.read_csv(StringIO(out), header=None, names=['Rank'], index_col=False)
+    return pylist(data.Rank)
+
+
+def list_ranks_db(rank_file=None, debug=False):
+    '''list all taxonomic ranks present in the NCBI taxonomy database
+
+    Parameters
+    ----------
+    rank_file : str, default None
+        Specify the location of the rank definition and order file; by default, taxonkit uses
+        `~/taxonkit/ranks.txt`
+    debug : bool, default False
+        Print debugging output, e.g., system calls to `taxonkit`
+
+    Returns
+    -------
+    list
+        A list of taxonomic ranks.
+
+    >>> import pytaxonkit
+    >>> ranks = pytaxonkit.list_ranks_db()
+    >>> ranks[:5]
+    ['superkingdom', 'kingdom', 'subkingdom', 'superphylum', 'phylum']
+    '''
+    arglist = ['taxonkit', 'filter', '--list-ranks']
+    if rank_file:
+        arglist.extend(['--rank-file', rank_file])
+    if debug:
+        log(*arglist)
+    proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    out, err = proc.communicate(input='')
+    data = pandas.read_csv(StringIO(out), header=None, names=['Rank'], index_col=False)
+    return pylist(data.Rank)
