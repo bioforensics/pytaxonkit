@@ -268,7 +268,7 @@ def test_list_str():
 # -------------------------------------------------------------------------------------------------
 
 
-def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
+def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, debug=False, **kwargs):
     '''query lineage of given taxids
 
     Executes `taxonkit lineage` and `taxonkit reformat` to provide both a full and a "standard"
@@ -286,6 +286,12 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
     data_dir : str, default None
         Specify the location of the NCBI taxonomy `.dmp` files; by default, taxonkit searches in
         `~/.taxonkit/`
+    prefix : bool, default False
+        add prefixes to each name indicating rank
+    prefix_* : str, default None
+        when `prefix=True`, override default prefix for the specified rank; replace `*` with one of
+        k, p, c, o, f, g, s, S corresponding to (super)kingdom, phylum, class, order, family,
+        genus, species, subspecies; for example, `prefix_g='GENUS:', prefix_s='SPECIES:'`
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
 
@@ -339,6 +345,16 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
         extraargs = []
         if formatstr:
             extraargs.extend(('--format', formatstr))
+        if prefix:
+            extraargs.append('--add-prefix')
+        for key, value in kwargs.items():
+            if key.count('_') != 1:
+                raise TypeError(f'unexpected keyword argument "{key}"')
+            prefix, subkey = key.split('_')
+            if prefix != 'prefix' or subkey not in 'kpcofgsS':
+                raise TypeError(f'unexpected keyword argument "{key}"')
+            flag = f'--prefix-{subkey}'
+            extraargs.extend((flag, value))
         if threads:
             extraargs.extend(('--threads', validate_threads(threads)))
         if data_dir:
@@ -371,7 +387,7 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, debug=False):
 def name(ids, data_dir=None, debug=False):
     '''rapid taxon name retrieval
 
-    Uses the `--no-linage` option in `taxonkit lineage` for rapid retrieval of taxon names.
+    Uses the `--no-lineage` option in `taxonkit lineage` for rapid retrieval of taxon names.
 
     Parameters
     ----------
@@ -449,6 +465,42 @@ def test_lineage_threads():
 def test_lineage_name():
     result = lineage(['526061'])
     assert result.Name.iloc[0] == 'Henosepilachna sp. AGBA-2008'
+
+
+def test_lineage_prefix():
+    result = lineage([64191], prefix=True)
+    obs_out = result.Lineage.iloc[0]
+    exp_out = (
+        'k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__;f__;g__;'
+        's__magnetic proteobacterium strain rj53'
+    )
+    assert exp_out == obs_out
+    result = lineage(['229933'], prefix=True, prefix_p='PHYLUM:', prefix_c='CLASS:')
+    obs_out = result.Lineage.iloc[0]
+    print(obs_out)
+    exp_out = (
+        'k__Bacteria;PHYLUM:Proteobacteria;CLASS:Alphaproteobacteria;o__Rickettsiales;'
+        'f__Anaplasmataceae;g__Wolbachia;s__Wolbachia endosymbiont of Togo hemipterus (strain 1)'
+    )
+    assert exp_out == obs_out
+
+
+def test_lineage_prefix_no_effect():
+    result = lineage([325064], prefix_o='ORDER:')
+    obs_out = result.Lineage.iloc[0]
+    exp_out = (
+        'Eukaryota;Discosea;Flabellinia;;Vannellidae;Platyamoeba;Platyamoeba sp. strain AFSM6/I'
+    )
+    assert exp_out == obs_out
+
+
+def test_lineage_bad_prefix():
+    with pytest.raises(TypeError, match=r'unexpected keyword argument "prefix_bOguSrANk"'):
+        lineage([325064], prefix_bOguSrANk='BOGUS:')
+    with pytest.raises(TypeError, match=r'unexpected keyword argument "prefix_g_s"'):
+        lineage([325064], prefix_g_s='GS:')
+    with pytest.raises(TypeError, match=r'unexpected keyword argument "breakfast_sausage"'):
+        lineage([325064], breakfast_sausage='YUM')
 
 
 def test_name_debug(capsys):
