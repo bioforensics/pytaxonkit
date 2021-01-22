@@ -193,7 +193,7 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
     ...
     Top level result: Solenopsis (13685); 293 related taxa
-    Top level result: Bos (9903); 27 related taxa
+    Top level result: Bos (9903); 29 related taxa
     >>> subtaxa[0]
     BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
     >>> pytaxonkit.list([9605], raw=True)
@@ -566,7 +566,7 @@ def filter(ids, equal_to=None, higher_than=None, lower_than=None, discard_norank
     lower_than : str, default None
         Keep only taxa ranked lower than the specified rank
     discard_norank : bool, default False
-        Discard ranks without an explicit ranking order
+        Discard generic ranks without an explicit ranking order ("no rank" and "clade")
     discard_root : bool, default False
         Discard root taxon
     root_taxid : int or str
@@ -587,9 +587,9 @@ def filter(ids, equal_to=None, higher_than=None, lower_than=None, discard_norank
     >>> import pytaxonkit
     >>> taxids = [131567, 2, 1783257, 74201, 203494, 48461, 1647988, 239934, 239935, 349741]
     >>> pytaxonkit.filter(taxids, blacklist=['family', 'species'])
-    [2, 74201, 203494, 48461, 239934, 349741]
+    [131567, 2, 1783257, 74201, 203494, 48461, 239934, 349741]
     >>> pytaxonkit.filter(taxids, lower_than='genus')
-    [239935, 349741]
+    [131567, 1783257, 239935, 349741]
     '''
     if higher_than is not None and lower_than is not None:
         raise ValueError('cannot specify "higher_than" and "lower_than" simultaneously')
@@ -606,7 +606,7 @@ def filter(ids, equal_to=None, higher_than=None, lower_than=None, discard_norank
     if discard_root:
         arglist.append('--discard-root')
     if blacklist:
-        arglist.extend(['--black-list', ','.join(['no rank', 'clade'] + blacklist)])
+        arglist.extend(['--black-list', ','.join(blacklist)])
     if root_taxid:
         arglist.extend(['--root-taxid', str(root_taxid)])
     if rank_file:
