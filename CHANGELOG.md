@@ -5,7 +5,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
+- New `filter()` function supporting new `taxonkit filter` command (#4)
 - New `lca()` function supporting new `taxonkit lca` command (#5)
+- Support for new `prefix` related flags (#6)
 
 
 ## [0.6.1] 2020-10-30
