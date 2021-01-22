@@ -192,7 +192,7 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
     ...
     Top level result: Solenopsis (13685); 293 related taxa
-    Top level result: Bos (9903); 27 related taxa
+    Top level result: Bos (9903); 29 related taxa
     >>> subtaxa[0]
     BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
     >>> pytaxonkit.list([9605], raw=True)
@@ -542,3 +542,85 @@ def test_name2taxid(capsys):
 def test_name2taxid_threads():
     result = name2taxid(['FCB group'], threads='1')
     assert str(result) == '        Name    TaxID   Rank\n0  FCB group  1783270  clade'
+
+
+# -------------------------------------------------------------------------------------------------
+# taxonkit lca
+# -------------------------------------------------------------------------------------------------
+
+def lca(ids, multi=False, skip_deleted=False, skip_unfound=False, threads=None, data_dir=None,
+        debug=False):
+    '''compute lowest common ancestor (LCA) for taxids
+
+    Parameters
+    ----------
+    ids : list or iterable
+        A list of taxids (ints or strings are ok); if `multi=True`, a list of lists is expected
+    multi : bool, default False
+        The input consists of multiple LCA queries, stored as a list of taxid lists; by default,
+        a single list corresponding to a single LCA query is expected
+    skip_deleted : bool, default False
+        Ignore deleted taxids and compute LCA with the remaining taxa
+    skip_unfound : bool, default False
+        Ignore taxids not found in the taxonomy database and compute LCA with the remaining taxa
+    threads : int
+        Override the default taxonkit threads setting
+    data_dir : str, default None
+        Specify the location of the NCBI taxonomy `.dmp` files; by default, taxonkit searches in
+        `~/.taxonkit/`
+    debug : bool, default False
+        Print debugging output, e.g., system calls to `taxonkit`
+
+    Returns
+    -------
+    int or list
+        A taxid or, if `multi=True`, a list of taxids
+
+    Examples
+    --------
+    >>> import pytaxonkit
+    >>> pytaxonkit.lca([239934, 239935, 349741])
+    239934
+    >>> pytaxonkit.lca([[63221, 2665953], [63221, 741158]], multi=True)
+    [9605, 9606]
+    '''
+    if multi:
+        idstring = '\n'.join([' '.join(map(str, sublist)) for sublist in ids])
+    else:
+        idstring = ' '.join(map(str, ids))
+    arglist = ['taxonkit', 'lca']
+    if skip_deleted:
+        arglist.append('--skip-deleted')
+    if skip_unfound:
+        arglist.append('--skip-unfound')
+    if threads:
+        arglist.extend(('--threads', validate_threads(threads)))
+    if data_dir:
+        arglist.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
+    if debug:
+        log(*arglist)
+    proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    out, err = proc.communicate(input=idstring)
+    if proc.returncode != 0:
+        raise TaxonKitCLIError(err)  # pragma: no cover
+    results = []
+    for line in out.strip().split('\n'):
+        queries, lcataxid = line.split('\t')
+        results.append(int(lcataxid))
+    if multi:
+        return results
+    else:
+        assert len(results) == 1
+        return results[0]
+
+
+def test_lca_deleted():
+    assert lca([1, 2, 3]) == 0
+    assert lca([1, 2, 3], skip_deleted=True, threads=1) == 1
+
+
+def test_lca_unfound(capsys):
+    assert lca([61021, 61022, 11111111]) == 0
+    assert lca([61021, 61022, 11111111], skip_unfound=True, debug=True) == 2628496
+    terminal = capsys.readouterr()
+    assert 'taxonkit lca --skip-unfound' in terminal.err
