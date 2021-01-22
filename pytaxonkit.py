@@ -549,8 +549,9 @@ def test_name2taxid_threads():
 # taxonkit filter
 # -------------------------------------------------------------------------------------------------
 
-def filter(ids, equal_to=None, higher_than=None, lower_than=None, discard_norank=False,
-           discard_root=False, root_taxid=None, blacklist=None, rank_file=None, debug=False):
+def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
+           discard_norank=False, discard_root=False, root_taxid=None, blacklist=None,
+           rank_file=None, debug=False):
     '''filter taxids by taxonomic rank (or a range of ranks)
 
     Executes the `taxonkit filter` command to include or exclude taxa at the specified ranks.
@@ -559,6 +560,8 @@ def filter(ids, equal_to=None, higher_than=None, lower_than=None, discard_norank
     ----------
     ids : list or iterable
         A list of taxids (ints or strings are ok)
+    threads : int
+        Override the default taxonkit threads setting
     equal_to : str, default None
         Keep only taxa at the specified rank
     higher_than : str, default None
@@ -595,6 +598,8 @@ def filter(ids, equal_to=None, higher_than=None, lower_than=None, discard_norank
         raise ValueError('cannot specify "higher_than" and "lower_than" simultaneously')
     idlist = '\n'.join(map(str, ids))
     arglist = ['taxonkit', 'filter']
+    if threads:
+        arglist.extend(('--threads', validate_threads(threads)))
     if equal_to:
         arglist.extend(['--equal-to', equal_to])
     if higher_than:
@@ -603,13 +608,13 @@ def filter(ids, equal_to=None, higher_than=None, lower_than=None, discard_norank
         arglist.extend(['--lower-than', lower_than])
     if discard_norank:
         arglist.append('--discard-noranks')
-    if discard_root:
+    if discard_root:  # pragma: no cover
         arglist.append('--discard-root')
     if blacklist:
         arglist.extend(['--black-list', ','.join(blacklist)])
-    if root_taxid:
+    if root_taxid:  # pragma: no cover
         arglist.extend(['--root-taxid', str(root_taxid)])
-    if rank_file:
+    if rank_file:  # pragma: no cover
         arglist.extend(['--rank-file', rank_file])
     if debug:
         log(*arglist)
@@ -641,7 +646,7 @@ def list_ranks(rank_file=None, debug=False):
     ['life', 'domain', 'kingdom', 'subkingdom', 'infrakingdom']
     '''
     arglist = ['taxonkit', 'filter', '--list-order']
-    if rank_file:
+    if rank_file:  # pragma: no cover
         arglist.extend(['--rank-file', rank_file])
     if debug:
         log(*arglist)
@@ -673,7 +678,7 @@ def list_ranks_db(rank_file=None, debug=False):
     ['superkingdom', 'kingdom', 'subkingdom', 'superphylum', 'phylum']
     '''
     arglist = ['taxonkit', 'filter', '--list-ranks']
-    if rank_file:
+    if rank_file:  # pragma: no cover
         arglist.extend(['--rank-file', rank_file])
     if debug:
         log(*arglist)
@@ -681,3 +686,46 @@ def list_ranks_db(rank_file=None, debug=False):
     out, err = proc.communicate(input='')
     data = pandas.read_csv(StringIO(out), header=None, names=['Rank'], index_col=False)
     return pylist(data.Rank)
+
+
+def test_filter_higher_than():
+    taxids = [
+        131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960,
+        50557, 85512, 7496, 33340, 33392, 7399, 7400, 7434, 34735, 7458, 70987, 83322, 481579,
+        2056706, 599582
+    ]
+    obs_result = filter(taxids, threads=1, higher_than='order', equal_to='order')
+    exp_result = [2759, 33208, 6656, 6960, 50557, 7496, 33340, 33392, 7399]
+    assert obs_result == exp_result
+
+
+def test_filter_lower_than(capsys):
+    taxids = [
+        131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960,
+        50557, 85512, 7496, 33340, 33392, 7041, 41071, 535382, 41073, 706613, 586004, 87479, 412111
+    ]
+    obs_result = filter(taxids, lower_than='family', discard_norank=True, debug=True)
+    exp_result = [706613, 586004, 87479, 412111]
+    assert obs_result == exp_result
+    terminal = capsys.readouterr()
+    assert 'taxonkit filter --lower-than family' in terminal.err
+
+
+def test_filter_higher_lower_conflict():
+    message = r'cannot specify "higher_than" and "lower_than" simultaneously'
+    with pytest.raises(ValueError, match=message):
+        filter([42], discard_norank=True, higher_than='genus', lower_than='genus')
+
+
+def test_list_ranks(capsys):
+    ranks = list_ranks(debug=True)
+    assert len(ranks) == 68
+    terminal = capsys.readouterr()
+    assert 'taxonkit filter --list-order' in terminal.err
+
+
+def test_list_ranks_db(capsys):
+    ranks = list_ranks_db(debug=True)
+    assert len(ranks) == 45
+    terminal = capsys.readouterr()
+    assert 'taxonkit filter --list-ranks' in terminal.err
