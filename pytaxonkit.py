@@ -268,7 +268,8 @@ def test_list_str():
 # -------------------------------------------------------------------------------------------------
 
 
-def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, debug=False, **kwargs):
+def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseudo_strain=False,
+            debug=False, **kwargs):
     '''query lineage of given taxids
 
     Executes `taxonkit lineage` and `taxonkit reformat` to provide both a full and a "standard"
@@ -289,9 +290,12 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, debu
     prefix : bool, default False
         add prefixes to each name indicating rank
     prefix_* : str, default None
-        when `prefix=True`, override default prefix for the specified rank; replace `*` with one of
+        When `prefix=True`, override default prefix for the specified rank; replace `*` with one of
         k, p, c, o, f, g, s, S corresponding to (super)kingdom, phylum, class, order, family,
         genus, species, subspecies; for example, `prefix_g='GENUS:', prefix_s='SPECIES:'`
+    pseudo_strain : bool, default False
+        Use the node with lowest rank as the strain name, only if that rank is lower than "species"
+        and not "subspecies" nor "strain"
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
 
@@ -351,13 +355,15 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, debu
             if key.count('_') != 1:
                 raise TypeError(f'unexpected keyword argument "{key}"')
             prefix, subkey = key.split('_')
-            if prefix != 'prefix' or subkey not in 'kpcofgsS':
+            if prefix != 'prefix' or subkey not in 'kpcofgsStT':
                 raise TypeError(f'unexpected keyword argument "{key}"')
             flag = f'--prefix-{subkey}'
             extraargs.extend((flag, value))
         if threads:
             extraargs.extend(('--threads', validate_threads(threads)))
         if data_dir:
+        if pseudo_strain:
+            extraargs.append('---pseudo-strain')
             extraargs.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
         arglist = [
             'taxonkit', 'reformat', *extraargs, '--lineage-field', '3', '--show-lineage-taxids',
@@ -602,8 +608,8 @@ def test_name2taxid_threads():
 # -------------------------------------------------------------------------------------------------
 
 def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
-           discard_norank=False, discard_root=False, root_taxid=None, blacklist=None,
-           rank_file=None, debug=False):
+           discard_norank=False, save_predictable=False, discard_root=False, root_taxid=None,
+           blacklist=None, rank_file=None, debug=False):
     '''filter taxids by taxonomic rank (or a range of ranks)
 
     Executes the `taxonkit filter` command to include or exclude taxa at the specified ranks.
@@ -614,14 +620,17 @@ def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
         A list of taxids (ints or strings are ok)
     threads : int
         Override the default taxonkit threads setting
-    equal_to : str, default None
-        Keep only taxa at the specified rank
+    equal_to : str or list, default None
+        Keep only taxa at the specified rank(s); can be a string or a list of strings
     higher_than : str, default None
         Keep only taxa ranked higher than the specified rank
     lower_than : str, default None
         Keep only taxa ranked lower than the specified rank
     discard_norank : bool, default False
         Discard generic ranks without an explicit ranking order ("no rank" and "clade")
+    save_predictable : bool, default False
+        When `discard_norank=True`, do not discard some special ranks without order where the rank
+        of the closest higher node is still lower than rank cutoff
     discard_root : bool, default False
         Discard root taxon
     root_taxid : int or str
@@ -653,6 +662,8 @@ def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
     if threads:
         arglist.extend(('--threads', validate_threads(threads)))
     if equal_to:
+        if isinstance(equal_to, (list, tuple)):
+            equal_to = ','.join(equal_to)
         arglist.extend(['--equal-to', equal_to])
     if higher_than:
         arglist.extend(['--higher-than', higher_than])
@@ -660,6 +671,8 @@ def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
         arglist.extend(['--lower-than', lower_than])
     if discard_norank:
         arglist.append('--discard-noranks')
+    if save_predictable:
+        arglist.append('--save-predictable-norank')
     if discard_root:  # pragma: no cover
         arglist.append('--discard-root')
     if blacklist:
