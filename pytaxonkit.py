@@ -361,9 +361,9 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseu
             extraargs.extend((flag, value))
         if threads:
             extraargs.extend(('--threads', validate_threads(threads)))
-        if data_dir:
         if pseudo_strain:
             extraargs.append('---pseudo-strain')
+        if data_dir:
             extraargs.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
         arglist = [
             'taxonkit', 'reformat', *extraargs, '--lineage-field', '3', '--show-lineage-taxids',
@@ -662,7 +662,7 @@ def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
     if threads:
         arglist.extend(('--threads', validate_threads(threads)))
     if equal_to:
-        if isinstance(equal_to, (list, tuple)):
+        if isinstance(equal_to, (pylist, tuple)):
             equal_to = ','.join(equal_to)
         arglist.extend(['--equal-to', equal_to])
     if higher_than:
