@@ -268,7 +268,8 @@ def test_list_str():
 # -------------------------------------------------------------------------------------------------
 
 
-def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, debug=False, **kwargs):
+def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseudo_strain=False,
+            fill_missing=False, debug=False, **kwargs):
     '''query lineage of given taxids
 
     Executes `taxonkit lineage` and `taxonkit reformat` to provide both a full and a "standard"
@@ -289,9 +290,14 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, debu
     prefix : bool, default False
         add prefixes to each name indicating rank
     prefix_* : str, default None
-        when `prefix=True`, override default prefix for the specified rank; replace `*` with one of
+        When `prefix=True`, override default prefix for the specified rank; replace `*` with one of
         k, p, c, o, f, g, s, S corresponding to (super)kingdom, phylum, class, order, family,
         genus, species, subspecies; for example, `prefix_g='GENUS:', prefix_s='SPECIES:'`
+    pseudo_strain : bool, default False
+        Use the node with lowest rank as the strain name, only if that rank is lower than "species"
+        and not "subspecies" nor "strain"
+    fill_missing : bool, default False
+        Fill missing rank with lineage information of the next higher rank
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
 
@@ -310,7 +316,7 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, debu
     >>> result = pytaxonkit.lineage([1325911, 1649473, 1401311])
     >>> result.columns
     Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank',
-           'FullLineage', 'FullLineageTaxIDs'],
+           'FullLineage', 'FullLineageTaxIDs', 'FullLineageRanks'],
           dtype='object')
     >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
          TaxID                                                                 Lineage                         LineageTaxIDs
@@ -327,7 +333,7 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, debu
     idlist = '\n'.join(map(str, ids))
     arglist = [
         'taxonkit', 'lineage', '--show-lineage-taxids', '--show-rank', '--show-status-code',
-        '--show-name'
+        '--show-name', '--show-lineage-ranks'
     ]
     if threads:
         arglist.extend(('--threads', validate_threads(threads)))
@@ -351,12 +357,16 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, debu
             if key.count('_') != 1:
                 raise TypeError(f'unexpected keyword argument "{key}"')
             prefix, subkey = key.split('_')
-            if prefix != 'prefix' or subkey not in 'kpcofgsS':
+            if prefix != 'prefix' or subkey not in 'kpcofgsStT':
                 raise TypeError(f'unexpected keyword argument "{key}"')
             flag = f'--prefix-{subkey}'
             extraargs.extend((flag, value))
         if threads:
             extraargs.extend(('--threads', validate_threads(threads)))
+        if pseudo_strain:
+            extraargs.append('--pseudo-strain')
+        if fill_missing:
+            extraargs.append('--fill-miss-rank')
         if data_dir:
             extraargs.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
         arglist = [
@@ -370,12 +380,12 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, debu
         if proc.returncode != 0:
             raise TaxonKitCLIError(err)  # pragma: no cover
         columnorderin = [
-            'TaxID', 'Code', 'FullLineage', 'FullLineageTaxIDs', 'Name', 'Rank', 'Lineage',
-            'LineageTaxIDs'
+            'TaxID', 'Code', 'FullLineage', 'FullLineageTaxIDs', 'Name', 'Rank',
+            'FullLineageRanks', 'Lineage', 'LineageTaxIDs',
         ]
         columnorderout = [
             'TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage',
-            'FullLineageTaxIDs'
+            'FullLineageTaxIDs', 'FullLineageRanks'
         ]
         data = pandas.read_csv(
             StringIO(out), sep='\t', header=None, names=columnorderin, index_col=False
@@ -460,6 +470,7 @@ def test_lineage_threads():
         'cellular organisms;Bacteria;FCB group;Bacteroidetes/Chlorobi group;Bacteroidetes;'
         'Bacteroidia'
     )
+    assert result.FullLineageRanks.iloc[0] == 'no rank;superkingdom;clade;clade;phylum;class'
 
 
 def test_lineage_name():
@@ -501,6 +512,19 @@ def test_lineage_bad_prefix():
         lineage([325064], prefix_g_s='GS:')
     with pytest.raises(TypeError, match=r'unexpected keyword argument "breakfast_sausage"'):
         lineage([325064], breakfast_sausage='YUM')
+
+
+def test_lineage_pseudo_strain():
+    result = lineage(
+        [36827], formatstr='{k};{p};{c};{o};{f};{g};{s};{t}', fill_missing=True,
+        pseudo_strain=True, prefix=True,
+    )
+    obs_out = result.Lineage.iloc[0]
+    exp_out = (
+        'k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Clostridiaceae;'
+        'g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B'
+    )
+    assert exp_out == obs_out
 
 
 def test_name_debug(capsys):
@@ -602,8 +626,8 @@ def test_name2taxid_threads():
 # -------------------------------------------------------------------------------------------------
 
 def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
-           discard_norank=False, discard_root=False, root_taxid=None, blacklist=None,
-           rank_file=None, debug=False):
+           discard_norank=False, save_predictable=False, discard_root=False, root_taxid=None,
+           blacklist=None, rank_file=None, debug=False):
     '''filter taxids by taxonomic rank (or a range of ranks)
 
     Executes the `taxonkit filter` command to include or exclude taxa at the specified ranks.
@@ -614,14 +638,17 @@ def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
         A list of taxids (ints or strings are ok)
     threads : int
         Override the default taxonkit threads setting
-    equal_to : str, default None
-        Keep only taxa at the specified rank
+    equal_to : str or list, default None
+        Keep only taxa at the specified rank(s); can be a string or a list of strings
     higher_than : str, default None
         Keep only taxa ranked higher than the specified rank
     lower_than : str, default None
         Keep only taxa ranked lower than the specified rank
     discard_norank : bool, default False
         Discard generic ranks without an explicit ranking order ("no rank" and "clade")
+    save_predictable : bool, default False
+        When `discard_norank=True`, do not discard some special ranks without order where the rank
+        of the closest higher node is still lower than rank cutoff
     discard_root : bool, default False
         Discard root taxon
     root_taxid : int or str
@@ -653,6 +680,8 @@ def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
     if threads:
         arglist.extend(('--threads', validate_threads(threads)))
     if equal_to:
+        if isinstance(equal_to, (pylist, tuple)):
+            equal_to = ','.join(equal_to)
         arglist.extend(['--equal-to', equal_to])
     if higher_than:
         arglist.extend(['--higher-than', higher_than])
@@ -660,6 +689,8 @@ def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
         arglist.extend(['--lower-than', lower_than])
     if discard_norank:
         arglist.append('--discard-noranks')
+    if save_predictable:
+        arglist.append('--save-predictable-norank')
     if discard_root:  # pragma: no cover
         arglist.append('--discard-root')
     if blacklist:
@@ -763,10 +794,34 @@ def test_filter_lower_than(capsys):
     assert 'taxonkit filter --lower-than family' in terminal.err
 
 
+def test_filter_equal_to_multi(capsys):
+    taxids = [
+        131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960,
+        50557, 85512, 7496, 33340, 33392, 7041, 41071, 535382, 41073, 706613, 586004, 87479, 412111
+    ]
+    obs_result = filter(taxids, threads=1, equal_to=['phylum', 'genus'], debug=True)
+    exp_result = [6656, 87479]
+    assert obs_result == exp_result
+    terminal = capsys.readouterr()
+    assert '--equal-to phylum,genus' in terminal.err
+
+
 def test_filter_higher_lower_conflict():
     message = r'cannot specify "higher_than" and "lower_than" simultaneously'
     with pytest.raises(ValueError, match=message):
         filter([42], discard_norank=True, higher_than='genus', lower_than='genus')
+
+
+def test_filter_save_predictable():
+    taxids = [
+        131567, 2, 1224, 1236, 91347, 543, 561, 562, 2605619, 10239, 2731341, 2731360, 2731618,
+        2731619, 28883, 10699, 196894, 1327037
+    ]
+    obs_result = filter(
+        taxids, threads=1, lower_than='species', equal_to='species', save_predictable=True
+    )
+    exp_result = [562, 2605619, 1327037]
+    assert obs_result == exp_result
 
 
 def test_list_ranks(capsys):

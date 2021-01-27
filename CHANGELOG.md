@@ -5,9 +5,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 ### Added
-- New `filter()` function supporting new `taxonkit filter` command (#4)
+- New `filter()` function supporting new `taxonkit filter` command (#4, #8)
 - New `lca()` function supporting new `taxonkit lca` command (#5)
 - Support for new `prefix` related flags (#6)
+- Use new `--show-lineage-ranks` to create new `FullLineageRanks` column in `lineage()` output (#8)
 
 
 ## [0.6.1] 2020-10-30
