@@ -51,7 +51,7 @@ Execute `help(pytaxonkit.name2taxid)` (and so on) from the Python interpreter fo
 >>> result = pytaxonkit.lineage([7399, 1973489])
 >>> result.columns
 Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank',
-       'FullLineage', 'FullLineageTaxIDs'],
+       'FullLineage', 'FullLineageTaxIDs', 'FullLineageRanks'],
       dtype='object')
 >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
      TaxID                                            Lineage                          LineageTaxIDs
@@ -81,12 +81,51 @@ Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank',
 ...     subtaxa = [t for t in tree.traverse]
 ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
 ...
-Top level result: Solenopsis (13685); 198 related taxa
-Top level result: Bos (9903); 26 related taxa
+Top level result: Solenopsis (13685); 293 related taxa
+Top level result: Bos (9903); 29 related taxa
 >>> subtaxa[0]
 BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
 >>> pytaxonkit.list([9605], raw=True)
-{'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies]Homo sapiens subsp. 'Denisova'": {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmentalsample': {}}}, '1425170 [species] Homo heidelbergensis': {}}}
+{'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}}, '1425170 [species] Homo heidelbergensis': {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}}}
+```
+
+### filter
+
+```python
+>>> import pytaxonkit
+>>> taxids = [131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960, 50557, 85512, 7496, 33340, 33392, 85604, 7088]
+>>> result = pytaxonkit.filter(taxids, equal_to='phylum', higher_than='phylum')
+>>> pytaxonkit.name(result)
+>>> pytaxonkit.name(result)
+   TaxID        Name
+0   2759   Eukaryota
+1  33208     Metazoa
+2   6656  Arthropoda
+>>> taxids = [131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960, 50557, 85512, 7496, 33340, 33342, 7524]
+>>> result = pytaxonkit.filter(taxids, lower_than='phylum', discard_norank=True)
+>>> pytaxonkit.name(result)
+   TaxID          Name
+0   6960      Hexapoda
+1  50557       Insecta
+2   7496     Pterygota
+3  33340      Neoptera
+4  33342  Paraneoptera
+5   7524     Hemiptera
+```
+
+### lca
+
+```python
+>>> import pytaxonkit
+>>> taxids = pytaxonkit.name2taxid(['Polistes metricus', 'Nasonia vitripennis'])
+>>> taxids
+                  Name  TaxID     Rank
+0    Polistes metricus  91422  species
+1  Nasonia vitripennis   7425  species
+>>> ancestor = pytaxonkit.lca(taxids.TaxID)
+>>> pytaxonkit.name([ancestor])
+   TaxID      Name
+0   7400  Apocrita
 ```
 
 ### version
@@ -94,9 +133,9 @@ BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
 ```python
 >>> import pytaxonkit
 >>> pytaxonkit.__version__
-0.6.1
+'0.7.2'
 >>> pytaxonkit.__taxonkitversion__
-0.6.1
+'taxonkit v0.7.2'
 ```
 
 
