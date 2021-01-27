@@ -316,7 +316,7 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseu
     >>> result = pytaxonkit.lineage([1325911, 1649473, 1401311])
     >>> result.columns
     Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank',
-           'FullLineage', 'FullLineageTaxIDs'],
+           'FullLineage', 'FullLineageTaxIDs', 'FullLineageRanks'],
           dtype='object')
     >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
          TaxID                                                                 Lineage                         LineageTaxIDs
@@ -333,7 +333,7 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseu
     idlist = '\n'.join(map(str, ids))
     arglist = [
         'taxonkit', 'lineage', '--show-lineage-taxids', '--show-rank', '--show-status-code',
-        '--show-name'
+        '--show-name', '--show-lineage-ranks'
     ]
     if threads:
         arglist.extend(('--threads', validate_threads(threads)))
@@ -380,12 +380,12 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseu
         if proc.returncode != 0:
             raise TaxonKitCLIError(err)  # pragma: no cover
         columnorderin = [
-            'TaxID', 'Code', 'FullLineage', 'FullLineageTaxIDs', 'Name', 'Rank', 'Lineage',
-            'LineageTaxIDs'
+            'TaxID', 'Code', 'FullLineage', 'FullLineageTaxIDs', 'Name', 'Rank',
+            'FullLineageRanks', 'Lineage', 'LineageTaxIDs',
         ]
         columnorderout = [
             'TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage',
-            'FullLineageTaxIDs'
+            'FullLineageTaxIDs', 'FullLineageRanks'
         ]
         data = pandas.read_csv(
             StringIO(out), sep='\t', header=None, names=columnorderin, index_col=False
@@ -470,6 +470,7 @@ def test_lineage_threads():
         'cellular organisms;Bacteria;FCB group;Bacteroidetes/Chlorobi group;Bacteroidetes;'
         'Bacteroidia'
     )
+    assert result.FullLineageRanks.iloc[0] == 'no rank;superkingdom;clade;clade;phylum;class'
 
 
 def test_lineage_name():
