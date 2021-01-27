@@ -2,7 +2,7 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [0.7.2] 2021-01-27
 
 ### Added
 - New `filter()` function supporting new `taxonkit filter` command (#4, #8)
