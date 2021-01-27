@@ -269,7 +269,7 @@ def test_list_str():
 
 
 def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseudo_strain=False,
-            debug=False, **kwargs):
+            fill_missing=False, debug=False, **kwargs):
     '''query lineage of given taxids
 
     Executes `taxonkit lineage` and `taxonkit reformat` to provide both a full and a "standard"
@@ -296,6 +296,8 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseu
     pseudo_strain : bool, default False
         Use the node with lowest rank as the strain name, only if that rank is lower than "species"
         and not "subspecies" nor "strain"
+    fill_missing : bool, default False
+        Fill missing rank with lineage information of the next higher rank
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
 
@@ -362,7 +364,9 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseu
         if threads:
             extraargs.extend(('--threads', validate_threads(threads)))
         if pseudo_strain:
-            extraargs.append('---pseudo-strain')
+            extraargs.append('--pseudo-strain')
+        if fill_missing:
+            extraargs.append('--fill-miss-rank')
         if data_dir:
             extraargs.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
         arglist = [
@@ -507,6 +511,19 @@ def test_lineage_bad_prefix():
         lineage([325064], prefix_g_s='GS:')
     with pytest.raises(TypeError, match=r'unexpected keyword argument "breakfast_sausage"'):
         lineage([325064], breakfast_sausage='YUM')
+
+
+def test_lineage_pseudo_strain():
+    result = lineage(
+        [36827], formatstr='{k};{p};{c};{o};{f};{g};{s};{t}', fill_missing=True,
+        pseudo_strain=True, prefix=True,
+    )
+    obs_out = result.Lineage.iloc[0]
+    exp_out = (
+        'k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Clostridiaceae;'
+        'g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B'
+    )
+    assert exp_out == obs_out
 
 
 def test_name_debug(capsys):
@@ -776,10 +793,34 @@ def test_filter_lower_than(capsys):
     assert 'taxonkit filter --lower-than family' in terminal.err
 
 
+def test_filter_equal_to_multi(capsys):
+    taxids = [
+        131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960,
+        50557, 85512, 7496, 33340, 33392, 7041, 41071, 535382, 41073, 706613, 586004, 87479, 412111
+    ]
+    obs_result = filter(taxids, threads=1, equal_to=['phylum', 'genus'], debug=True)
+    exp_result = [6656, 87479]
+    assert obs_result == exp_result
+    terminal = capsys.readouterr()
+    assert '--equal-to phylum,genus' in terminal.err
+
+
 def test_filter_higher_lower_conflict():
     message = r'cannot specify "higher_than" and "lower_than" simultaneously'
     with pytest.raises(ValueError, match=message):
         filter([42], discard_norank=True, higher_than='genus', lower_than='genus')
+
+
+def test_filter_save_predictable():
+    taxids = [
+        131567, 2, 1224, 1236, 91347, 543, 561, 562, 2605619, 10239, 2731341, 2731360, 2731618,
+        2731619, 28883, 10699, 196894, 1327037
+    ]
+    obs_result = filter(
+        taxids, threads=1, lower_than='species', equal_to='species', save_predictable=True
+    )
+    exp_result = [562, 2605619, 1327037]
+    assert obs_result == exp_result
 
 
 def test_list_ranks(capsys):
