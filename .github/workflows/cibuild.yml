@@ -37,12 +37,15 @@ jobs:
           popd
       - name: Install
         run: |
+          conda activate test
           python -m pip install --upgrade pip
           pip install .
           make devenv
       - name: Style check
         run: |
+          conda activate test
           make style
       - name: Test with pytest
         run: |
+          conda activate test
           make test
