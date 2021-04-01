@@ -438,25 +438,25 @@ def name(ids, data_dir=None, debug=False):
 
 
 def test_lineage(capsys):
-    result = lineage(['1082657', '265720', '2507530', '106649'], debug=True)
-    assert result.TaxID.equals(pandas.Series([1082657, 265720, 2507530, 106649]))
-    assert result.Code.equals(pandas.Series([1082657, 265720, 2507530, 106649]))
+    result = lineage(['1082657', '265720', '1191594', '106649'], debug=True)
+    assert result.TaxID.equals(pandas.Series([1082657, 265720, 1191594, 106649]))
+    assert result.Code.equals(pandas.Series([1082657, 265720, 1191594, 106649]))
     assert result.Lineage.equals(pandas.Series([
         'Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95',
         'Bacteria;Bacteroidetes;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;'
         'Porphyromonas genomosp. P3',
-        'Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula species',
+        'Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina',
         'Bacteria;Proteobacteria;Gammaproteobacteria;Pseudomonadales;Moraxellaceae;Acinetobacter;'
         'Acinetobacter guillouiae',
     ]))
     assert result.LineageTaxIDs.equals(pandas.Series([
         '2759;555280;;1485168;33677;5754;1082657',
         '2;976;200643;171549;171551;836;265720',
-        '2759;5204;155619;452342;5401;5402;2507520',
+        '2759;5204;155619;452342;5401;5402;1191593',
         '2;1224;1236;72274;468;469;106649',
     ]))
     assert result.Rank.equals(pandas.Series([
-        'species', 'species', 'subspecies', 'species'
+        'species', 'species', 'varietas', 'species'
     ]))
 
     out, err = capsys.readouterr()
@@ -521,7 +521,7 @@ def test_lineage_pseudo_strain():
     )
     obs_out = result.Lineage.iloc[0]
     exp_out = (
-        'k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Clostridiaceae;'
+        'k__Bacteria;p__Firmicutes;c__Clostridia;o__Eubacteriales;f__Clostridiaceae;'
         'g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B'
     )
     assert exp_out == obs_out
