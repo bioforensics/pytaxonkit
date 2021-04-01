@@ -28,7 +28,7 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
           environment-file: environment.yaml
-          activate-envrionment: pytaxonkit
+          activate-environment: pytaxonkit
       - name: Taxonomy data download
         run: |
           mkdir ~/.taxonkit
