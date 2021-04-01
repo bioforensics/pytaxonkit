@@ -22,14 +22,12 @@ jobs:
           - os: macos-latest
             python-version: 3.7
     steps:
+      - uses: actions/checkout@v1
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v1
-      - name: Environment setup
-        run: |
-          conda env create -f environment.yaml
+          environment-file: environment.yaml
       - name: Taxonomy data download
         run: |
           mkdir ~/.taxonkit

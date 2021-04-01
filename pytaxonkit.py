@@ -445,7 +445,8 @@ def test_lineage(capsys):
         'Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95',
         'Bacteria;Bacteroidetes;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;'
         'Porphyromonas genomosp. P3',
-        'Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula species',
+        'Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;'
+        'Russula sp. 8 KA-2019',
         'Bacteria;Proteobacteria;Gammaproteobacteria;Pseudomonadales;Moraxellaceae;Acinetobacter;'
         'Acinetobacter guillouiae',
     ]))
@@ -521,7 +522,7 @@ def test_lineage_pseudo_strain():
     )
     obs_out = result.Lineage.iloc[0]
     exp_out = (
-        'k__Bacteria;p__Firmicutes;c__Clostridia;o__Clostridiales;f__Clostridiaceae;'
+        'k__Bacteria;p__Firmicutes;c__Clostridia;o__Eubacteriales;f__Clostridiaceae;'
         'g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B'
     )
     assert exp_out == obs_out
