@@ -833,7 +833,7 @@ def test_list_ranks(capsys):
 
 def test_list_ranks_db(capsys):
     ranks = list_ranks_db(debug=True)
-    assert len(ranks) == 45
+    assert len(ranks) == 44
     terminal = capsys.readouterr()
     assert 'taxonkit filter --list-ranks' in terminal.err
 
