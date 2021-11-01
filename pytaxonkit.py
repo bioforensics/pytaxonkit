@@ -438,25 +438,27 @@ def name(ids, data_dir=None, debug=False):
 
 
 def test_lineage(capsys):
-    result = lineage(['1082657', '265720', '1191594', '106649'], debug=True)
-    assert result.TaxID.equals(pandas.Series([1082657, 265720, 1191594, 106649]))
-    assert result.Code.equals(pandas.Series([1082657, 265720, 1191594, 106649]))
+    result = lineage(['1082657', '265720', '1191594', '106649', '2868953'], debug=True)
+    assert result.TaxID.equals(pandas.Series([1082657, 265720, 1191594, 106649, 2868953]))
+    assert result.Code.equals(pandas.Series([1082657, 265720, 1191594, 106649, 2868953]))
     assert result.Lineage.equals(pandas.Series([
         'Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95',
         'Bacteria;Bacteroidetes;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;'
         'Porphyromonas genomosp. P3',
         'Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina',
-        'Bacteria;Proteobacteria;Gammaproteobacteria;Pseudomonadales;Moraxellaceae;Acinetobacter;'
+        'Bacteria;Proteobacteria;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;'
         'Acinetobacter guillouiae',
+        'Eukaryota;Arthropoda;Insecta;Hemiptera;Lygaeidae;Lygaeosoma;Lygaeosoma sardeum',
     ]))
     assert result.LineageTaxIDs.equals(pandas.Series([
         '2759;555280;;1485168;33677;5754;1082657',
         '2;976;200643;171549;171551;836;265720',
         '2759;5204;155619;452342;5401;5402;1191593',
-        '2;1224;1236;72274;468;469;106649',
+        '2;1224;1236;2887326;468;469;106649',
+        '2759;6656;50557;7524;7533;2868952;2868953',
     ]))
     assert result.Rank.equals(pandas.Series([
-        'species', 'species', 'varietas', 'species'
+        'species', 'species', 'varietas', 'species', 'species',
     ]))
 
     out, err = capsys.readouterr()
