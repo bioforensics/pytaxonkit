@@ -197,7 +197,7 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     >>> subtaxa[0]
     BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
     >>> pytaxonkit.list([9605], raw=True)
-    {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}}, '1425170 [species] Homo heidelbergensis': {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}}}
+    {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}}, '1425170 [species] Homo heidelbergensis': {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}, '2813598 [no rank] unclassified Homo': {'2813599 [species] Homo sp.': {}}}}
     '''  # noqa: E501
     idlist = ','.join(map(str, ids))
     arglist = ['taxonkit', 'list', '--json', '--show-name', '--show-rank', '--ids', idlist]
@@ -321,7 +321,7 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseu
     >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
          TaxID                                                                 Lineage                         LineageTaxIDs
     0  1325911     Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
-    1  1649473  Bacteria;Bacteroidetes;Cytophagia;Cytophagales;Cytophagaceae;Nibrella;    2;976;768503;768507;89373;1649473;
+    1  1649473  Bacteria;Bacteroidetes;Cytophagia;Cytophagales;Spirosomaceae;Nibrella;  2;976;768503;768507;2896860;1649473;
     2  1401311        Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
     >>> result = pytaxonkit.lineage(['1382510', '929505', '390333'], formatstr='{f};{g};{s};{S}')
     >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
