@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------------------------------
-# Copyright (c) 2020, Battelle National Biodefense Institute.
+# Copyright (c) 2020, DHS.
 #
 # This file is part of pytaxonkit (http://github.com/bioforensics/pytaxonkit)
 # and is licensed under the BSD license.
@@ -44,12 +44,13 @@ from collections import namedtuple
 from io import StringIO
 import json
 import os
-import pandas
+import pandas as pd
 from pandas import UInt32Dtype, StringDtype
 import pytest
 from subprocess import Popen, PIPE
 import sys
 from tempfile import NamedTemporaryFile
+from warnings import warn
 
 from _version import get_versions
 __version__ = get_versions()['version']
@@ -192,14 +193,17 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     ...     subtaxa = [t for t in tree.traverse]
     ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
     ...
-    Top level result: Solenopsis (13685); 293 related taxa
+    Top level result: Solenopsis (13685); 304 related taxa
     Top level result: Bos (9903); 29 related taxa
     >>> subtaxa[0]
     BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
     >>> pytaxonkit.list([9605], raw=True)
-    {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}}, '1425170 [species] Homo heidelbergensis': {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}}}
+    {'9605 [genus] Homo': {'9606 [species] Homo sapiens': {'63221 [subspecies] Homo sapiens neanderthalensis': {}, "741158 [subspecies] Homo sapiens subsp. 'Denisova'": {}}, '1425170 [species] Homo heidelbergensis': {}, '2665952 [no rank] environmental samples': {'2665953 [species] Homo sapiens environmental sample': {}}, '2813598 [no rank] unclassified Homo': {'2813599 [species] Homo sp.': {}}}}
     '''  # noqa: E501
     idlist = ','.join(map(str, ids))
+    if idlist == '':
+        warn('No input for pytaxonkit.list', UserWarning)
+        return
     arglist = ['taxonkit', 'list', '--json', '--show-name', '--show-rank', '--ids', idlist]
     if threads:
         arglist.extend(('--threads', validate_threads(threads)))
@@ -263,6 +267,12 @@ def test_list_str():
         assert str(result) == fh.read().strip()
 
 
+def test_list_empty():
+    with pytest.warns(UserWarning, match="No input for pytaxonkit.list"):
+        result = list([])
+        assert result is None
+
+
 # -------------------------------------------------------------------------------------------------
 # taxonkit lineage
 # -------------------------------------------------------------------------------------------------
@@ -321,7 +331,7 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseu
     >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
          TaxID                                                                 Lineage                         LineageTaxIDs
     0  1325911     Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
-    1  1649473  Bacteria;Bacteroidetes;Cytophagia;Cytophagales;Cytophagaceae;Nibrella;    2;976;768503;768507;89373;1649473;
+    1  1649473  Bacteria;Bacteroidetes;Cytophagia;Cytophagales;Spirosomaceae;Nibrella;  2;976;768503;768507;2896860;1649473;
     2  1401311        Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
     >>> result = pytaxonkit.lineage(['1382510', '929505', '390333'], formatstr='{f};{g};{s};{S}')
     >>> result[['TaxID', 'Lineage', 'LineageTaxIDs']]
@@ -331,6 +341,9 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseu
     2   390333  Lactobacillaceae;Lactobacillus;Lactobacillus delbrueckii;Lactobacillus delbrueckii subsp. bulgaricus  33958;1578;1584;1585
     '''  # noqa: E501
     idlist = '\n'.join(map(str, ids))
+    if idlist == '':
+        warn('No input for pytaxonkit.lineage', UserWarning)
+        return
     arglist = [
         'taxonkit', 'lineage', '--show-lineage-taxids', '--show-rank', '--show-status-code',
         '--show-name', '--show-lineage-ranks'
@@ -387,7 +400,7 @@ def lineage(ids, formatstr=None, threads=None, data_dir=None, prefix=False, pseu
             'TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage',
             'FullLineageTaxIDs', 'FullLineageRanks'
         ]
-        data = pandas.read_csv(
+        data = pd.read_csv(
             StringIO(out), sep='\t', header=None, names=columnorderin, index_col=False
         )
         data = data[columnorderout]
@@ -424,6 +437,9 @@ def name(ids, data_dir=None, debug=False):
     2   517824  soil bacterium Cipr-S1N-M1LLLSSL-1
     '''
     idlist = '\n'.join(map(str, ids))
+    if idlist == '':
+        warn('No input for pytaxonkit.name', UserWarning)
+        return
     arglist = ['taxonkit', 'lineage', '--show-name', '--no-lineage']
     if data_dir:
         arglist.extend(('--data-dir', validate_data_dir(data_dir)))  # pragma: no cover
@@ -431,7 +447,7 @@ def name(ids, data_dir=None, debug=False):
         log(*arglist)
     proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     out, err = proc.communicate(input=idlist)
-    data = pandas.read_csv(
+    data = pd.read_csv(
         StringIO(out), sep='\t', header=None, names=['TaxID', 'Name'], index_col=False
     )
     return data
@@ -439,23 +455,23 @@ def name(ids, data_dir=None, debug=False):
 
 def test_lineage(capsys):
     result = lineage(['1082657', '265720', '1191594', '106649'], debug=True)
-    assert result.TaxID.equals(pandas.Series([1082657, 265720, 1191594, 106649]))
-    assert result.Code.equals(pandas.Series([1082657, 265720, 1191594, 106649]))
-    assert result.Lineage.equals(pandas.Series([
+    assert result.TaxID.equals(pd.Series([1082657, 265720, 1191594, 106649]))
+    assert result.Code.equals(pd.Series([1082657, 265720, 1191594, 106649]))
+    assert result.Lineage.equals(pd.Series([
         'Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95',
         'Bacteria;Bacteroidetes;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;'
         'Porphyromonas genomosp. P3',
         'Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina',
-        'Bacteria;Proteobacteria;Gammaproteobacteria;Pseudomonadales;Moraxellaceae;Acinetobacter;'
+        'Bacteria;Proteobacteria;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;'
         'Acinetobacter guillouiae',
     ]))
-    assert result.LineageTaxIDs.equals(pandas.Series([
+    assert result.LineageTaxIDs.equals(pd.Series([
         '2759;555280;;1485168;33677;5754;1082657',
         '2;976;200643;171549;171551;836;265720',
         '2759;5204;155619;452342;5401;5402;1191593',
-        '2;1224;1236;72274;468;469;106649',
+        '2;1224;1236;2887326;468;469;106649',
     ]))
-    assert result.Rank.equals(pandas.Series([
+    assert result.Rank.equals(pd.Series([
         'species', 'species', 'varietas', 'species'
     ]))
 
@@ -529,13 +545,25 @@ def test_lineage_pseudo_strain():
 
 def test_name_debug(capsys):
     result = name([207661, 1353792, 1597281], debug=True)
-    assert result.Name.equals(pandas.Series([
+    assert result.Name.equals(pd.Series([
         'Ahnfeltiopsis concinna',
         'Picobirnavirus turkey/USA-1512/2010',
         'Isopoda sp. NZAC 03013534',
     ]))
     out, err = capsys.readouterr()
     assert 'taxonkit lineage --show-name --no-lineage' in err
+
+
+def test_lineage_empty():
+    with pytest.warns(UserWarning, match="No input for pytaxonkit.lineage"):
+        result = lineage([])
+        assert result is None
+
+
+def test_name_empty():
+    with pytest.warns(UserWarning, match="No input for pytaxonkit.name"):
+        result = name([])
+        assert result is None
 
 
 # -------------------------------------------------------------------------------------------------
@@ -581,6 +609,9 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False):
     2             Rexia erectus   <NA>  <NA>
     '''
     namelist = '\n'.join(map(str, names))
+    if namelist == '':
+        warn('No input for pytaxonkit.name2taxid', UserWarning)
+        return
     arglist = ['taxonkit', 'name2taxid', '--show-rank']
     if sciname:
         arglist.append('--sci-name')
@@ -599,7 +630,7 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False):
         'TaxID': UInt32Dtype(),
         'Rank': StringDtype(),
     }
-    data = pandas.read_csv(
+    data = pd.read_csv(
         StringIO(out), sep='\t', header=None, names=columns, dtype=columns, index_col=False
     )
     return data
@@ -607,8 +638,8 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False):
 
 def test_name2taxid(capsys):
     result = name2taxid(['Chaetocerotales', 'Diptera', 'Rickettsiales', 'Hypocreales'], debug=True)
-    taxids = pandas.Series([265576, 7147, 766, 5125], dtype=UInt32Dtype())
-    ranks = pandas.Series(['order', 'order', 'order', 'order'], dtype=StringDtype())
+    taxids = pd.Series([265576, 7147, 766, 5125], dtype=UInt32Dtype())
+    ranks = pd.Series(['order', 'order', 'order', 'order'], dtype=StringDtype())
     assert result.TaxID.equals(taxids)
     assert result.Rank.equals(ranks)
 
@@ -619,6 +650,12 @@ def test_name2taxid(capsys):
 def test_name2taxid_threads():
     result = name2taxid(['FCB group'], threads='1')
     assert str(result) == '        Name    TaxID   Rank\n0  FCB group  1783270  clade'
+
+
+def test_name2taxid_empty():
+    with pytest.warns(UserWarning, match="No input for pytaxonkit.name2taxid"):
+        result = name2taxid([])
+        assert result is None
 
 
 # -------------------------------------------------------------------------------------------------
@@ -676,6 +713,9 @@ def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
     if higher_than is not None and lower_than is not None:
         raise ValueError('cannot specify "higher_than" and "lower_than" simultaneously')
     idlist = '\n'.join(map(str, ids))
+    if idlist == '':
+        warn('No input for pytaxonkit.filter', UserWarning)
+        return
     arglist = ['taxonkit', 'filter']
     if threads:
         arglist.extend(('--threads', validate_threads(threads)))
@@ -703,7 +743,7 @@ def filter(ids, threads=None, equal_to=None, higher_than=None, lower_than=None,
         log(*arglist)
     proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     out, err = proc.communicate(input=idlist)
-    data = pandas.read_csv(StringIO(out), header=None, names=['TaxID'], index_col=False)
+    data = pd.read_csv(StringIO(out), header=None, names=['TaxID'], index_col=False)
     return pylist(data.TaxID)
 
 
@@ -735,7 +775,7 @@ def list_ranks(rank_file=None, debug=False):
         log(*arglist)
     proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     out, err = proc.communicate(input='')
-    data = pandas.read_csv(StringIO(out), header=None, names=['Rank'], index_col=False)
+    data = pd.read_csv(StringIO(out), header=None, names=['Rank'], index_col=False)
     return pylist(data.Rank)
 
 
@@ -767,7 +807,7 @@ def list_ranks_db(rank_file=None, debug=False):
         log(*arglist)
     proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     out, err = proc.communicate(input='')
-    data = pandas.read_csv(StringIO(out), header=None, names=['Rank'], index_col=False)
+    data = pd.read_csv(StringIO(out), header=None, names=['Rank'], index_col=False)
     return pylist(data.Rank)
 
 
@@ -833,9 +873,15 @@ def test_list_ranks(capsys):
 
 def test_list_ranks_db(capsys):
     ranks = list_ranks_db(debug=True)
-    assert len(ranks) == 45
+    assert len(ranks) == 44
     terminal = capsys.readouterr()
     assert 'taxonkit filter --list-ranks' in terminal.err
+
+
+def test_filter_empty():
+    with pytest.warns(UserWarning, match="No input for pytaxonkit.filter"):
+        result = filter([])
+        assert result is None
 
 
 # -------------------------------------------------------------------------------------------------
@@ -882,6 +928,9 @@ def lca(ids, multi=False, skip_deleted=False, skip_unfound=False, threads=None, 
         idstring = '\n'.join([' '.join(map(str, sublist)) for sublist in ids])
     else:
         idstring = ' '.join(map(str, ids))
+    if idstring == '':
+        warn('No input for pytaxonkit.lca', UserWarning)
+        return
     arglist = ['taxonkit', 'lca']
     if skip_deleted:
         arglist.append('--skip-deleted')
@@ -918,3 +967,10 @@ def test_lca_unfound(capsys):
     assert lca([61021, 61022, 11111111], skip_unfound=True, debug=True) == 2628496
     terminal = capsys.readouterr()
     assert 'taxonkit lca --skip-unfound' in terminal.err
+
+
+@pytest.mark.parametrize('multi', [True, False])
+def test_lca_empty(multi):
+    with pytest.warns(UserWarning, match="No input for pytaxonkit.lca"):
+        result = lca([], multi=multi)
+        assert result is None
