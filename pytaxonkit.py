@@ -455,7 +455,6 @@ def name(ids, data_dir=None, debug=False):
 
 def test_lineage(capsys):
     result = lineage(['1082657', '265720', '1191594', '106649', '2868953'], debug=True)
-    print(result)
     assert result.TaxID.equals(pd.Series([1082657, 265720, 1191594, 106649, 2868953]))
     assert result.Code.equals(pd.Series([1082657, 265720, 1191594, 106649, 2868953]))
     assert result.Lineage.equals(pd.Series([
