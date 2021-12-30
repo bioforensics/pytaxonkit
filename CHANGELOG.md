@@ -10,6 +10,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Support for new `prefix` related flags (#6)
 - Use new `--show-lineage-ranks` to create new `FullLineageRanks` column in `lineage()` output (#8)
 
+### Fixed
+- Bug with empty inputs (#19)
+
 
 ## [0.6.1] 2020-10-30
 
