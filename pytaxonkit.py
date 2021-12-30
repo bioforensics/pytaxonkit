@@ -454,9 +454,10 @@ def name(ids, data_dir=None, debug=False):
 
 
 def test_lineage(capsys):
-    result = lineage(['1082657', '265720', '1191594', '106649'], debug=True)
-    assert result.TaxID.equals(pd.Series([1082657, 265720, 1191594, 106649]))
-    assert result.Code.equals(pd.Series([1082657, 265720, 1191594, 106649]))
+    result = lineage(['1082657', '265720', '1191594', '106649', '2868953'], debug=True)
+    print(result)
+    assert result.TaxID.equals(pd.Series([1082657, 265720, 1191594, 106649, 2868953]))
+    assert result.Code.equals(pd.Series([1082657, 265720, 1191594, 106649, 2868953]))
     assert result.Lineage.equals(pd.Series([
         'Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95',
         'Bacteria;Bacteroidetes;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;'
@@ -464,16 +465,16 @@ def test_lineage(capsys):
         'Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina',
         'Bacteria;Proteobacteria;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;'
         'Acinetobacter guillouiae',
+        'Eukaryota;Arthropoda;Insecta;Hemiptera;Lygaeidae;Lygaeosoma;Lygaeosoma sardeum',
     ]))
     assert result.LineageTaxIDs.equals(pd.Series([
         '2759;555280;;1485168;33677;5754;1082657',
         '2;976;200643;171549;171551;836;265720',
         '2759;5204;155619;452342;5401;5402;1191593',
         '2;1224;1236;2887326;468;469;106649',
+        '2759;6656;50557;7524;7533;2868952;2868953'
     ]))
-    assert result.Rank.equals(pd.Series([
-        'species', 'species', 'varietas', 'species'
-    ]))
+    assert result.Rank.equals(pd.Series(['species', 'species', 'varietas', 'species', 'species']))
 
     out, err = capsys.readouterr()
     assert 'taxonkit lineage --show-lineage-taxids --show-rank --show-status-code' in err
