@@ -754,7 +754,7 @@ def list_ranks(rank_file=None, debug=False):
     ----------
     rank_file : str, default None
         Specify the location of the rank definition and order file; by default, taxonkit uses
-        `~/taxonkit/ranks.txt`
+        `~/.taxonkit/ranks.txt`
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
 
@@ -766,8 +766,8 @@ def list_ranks(rank_file=None, debug=False):
     >>> import pytaxonkit
     >>> ranks = pytaxonkit.list_ranks()
     >>> ranks[:5]
-    ['life', 'domain', 'kingdom', 'subkingdom', 'infrakingdom']
-    '''
+    ['life', ['domain', 'empire', 'realm', 'superkingdom'], 'kingdom', 'subkingdom', 'infrakingdom']
+    '''  # noqa: E501
     arglist = ['taxonkit', 'filter', '--list-order']
     if rank_file:  # pragma: no cover
         arglist.extend(['--rank-file', rank_file])
@@ -775,8 +775,11 @@ def list_ranks(rank_file=None, debug=False):
         log(*arglist)
     proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     out, err = proc.communicate(input='')
-    data = pd.read_csv(StringIO(out), header=None, names=['Rank'], index_col=False)
-    return pylist(data.Rank)
+    ranks = pylist()
+    for line in out.strip().split():
+        rankvalue = line.split(",") if "," in line else line
+        ranks.append(rankvalue)
+    return ranks
 
 
 def list_ranks_db(rank_file=None, debug=False):
@@ -866,7 +869,9 @@ def test_filter_save_predictable():
 
 def test_list_ranks(capsys):
     ranks = list_ranks(debug=True)
-    assert len(ranks) == 68
+    multiranks = [r for r in ranks if isinstance(r, pylist)]
+    assert len(ranks) == 71
+    assert len(multiranks) == 17
     terminal = capsys.readouterr()
     assert 'taxonkit filter --list-order' in terminal.err
 
