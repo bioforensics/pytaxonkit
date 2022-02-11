@@ -764,11 +764,9 @@ def list_ranks(rank_file=None, debug=False):
         A list of taxonomic ranks.
 
     >>> import pytaxonkit
-    >>> ranks, synonyms = pytaxonkit.list_ranks()
+    >>> ranks = pytaxonkit.list_ranks()
     >>> ranks[:5]
-    ['life', 'domain', 'kingdom', 'subkingdom', 'infrakingdom']
-    >>> synonyms['domain']
-    ['empire', 'realm', 'superkingdom']
+    ['life', ['domain', 'empire', 'realm', 'superkingdom'], 'kingdom', 'subkingdom', 'infrakingdom']
     '''
     arglist = ['taxonkit', 'filter', '--list-order']
     if rank_file:  # pragma: no cover
@@ -778,13 +776,10 @@ def list_ranks(rank_file=None, debug=False):
     proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
     out, err = proc.communicate(input='')
     ranks = pylist()
-    synonyms = dict()
     for line in out.strip().split():
-        ranklist = line.split(",")
-        ranks.append(ranklist[0])
-        if len(ranklist) > 1:
-            synonyms[ranklist[0]] = ranklist[1:]
-    return ranks, synonyms
+        rankvalue = line.split(",") if "," in line else line 
+        ranks.append(rankvalue)
+    return ranks
 
 
 def list_ranks_db(rank_file=None, debug=False):
@@ -873,9 +868,10 @@ def test_filter_save_predictable():
 
 
 def test_list_ranks(capsys):
-    ranks, synonyms = list_ranks(debug=True)
+    ranks = list_ranks(debug=True)
+    multiranks = [r for r in ranks if isinstance(r, pylist)]
     assert len(ranks) == 71
-    assert len(synonyms) == 17
+    assert len(multiranks) == 17
     terminal = capsys.readouterr()
     assert 'taxonkit filter --list-order' in terminal.err
 
