@@ -767,7 +767,7 @@ def list_ranks(rank_file=None, debug=False):
     >>> ranks = pytaxonkit.list_ranks()
     >>> ranks[:5]
     ['life', ['domain', 'empire', 'realm', 'superkingdom'], 'kingdom', 'subkingdom', 'infrakingdom']
-    '''
+    '''  # noqa: E501
     arglist = ['taxonkit', 'filter', '--list-order']
     if rank_file:  # pragma: no cover
         arglist.extend(['--rank-file', rank_file])
