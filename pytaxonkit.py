@@ -777,7 +777,7 @@ def list_ranks(rank_file=None, debug=False):
     out, err = proc.communicate(input='')
     ranks = pylist()
     for line in out.strip().split():
-        rankvalue = line.split(",") if "," in line else line 
+        rankvalue = line.split(",") if "," in line else line
         ranks.append(rankvalue)
     return ranks
 
