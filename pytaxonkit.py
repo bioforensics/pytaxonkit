@@ -193,7 +193,7 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     ...     subtaxa = [t for t in tree.traverse]
     ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
     ...
-    Top level result: Solenopsis (13685); 305 related taxa
+    Top level result: Solenopsis (13685); 306 related taxa
     Top level result: Bos (9903); 29 related taxa
     >>> subtaxa[0]
     BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
@@ -478,6 +478,11 @@ def test_lineage(capsys):
     out, err = capsys.readouterr()
     assert 'taxonkit lineage --show-lineage-taxids --show-rank --show-status-code' in err
     assert 'taxonkit reformat --lineage-field 3 --show-lineage-taxids' in err
+
+
+def test_lineage_single_taxid():
+    result = lineage([128370])
+    assert result.TaxID.iloc[0] == 128370
 
 
 def test_lineage_threads():
@@ -951,6 +956,11 @@ def lca(ids, multi=False, skip_deleted=False, skip_unfound=False, threads=None, 
     out, err = proc.communicate(input=idstring)
     if proc.returncode != 0:
         raise TaxonKitCLIError(err)  # pragma: no cover
+    if out.strip() == '':
+        if multi:
+            return [None] * len(ids)
+        else:
+            return None
     results = []
     for line in out.strip().split('\n'):
         queries, lcataxid = line.split('\t')
@@ -972,6 +982,14 @@ def test_lca_unfound(capsys):
     assert lca([61021, 61022, 11111111], skip_unfound=True, debug=True) == 2628496
     terminal = capsys.readouterr()
     assert 'taxonkit lca --skip-unfound' in terminal.err
+
+
+@pytest.mark.parametrize("domulti, ids,result", [
+    (False, [775536, 2238728, 1121123211234321], None),
+    (True, [[1766280, 406491, 2568889], [11111111111, 20487, 760325]], [None, None])
+])
+def test_lca_all_missing(ids, domulti, result):
+    assert lca(ids, multi=domulti, skip_deleted=True, skip_unfound=True) == result
 
 
 @pytest.mark.parametrize('multi', [True, False])
