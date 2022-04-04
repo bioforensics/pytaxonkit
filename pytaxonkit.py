@@ -188,12 +188,12 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     Examples
     --------
     >>> import pytaxonkit
-    >>> result = pytaxonkit.list([13685, 9903])
+    >>> result = pytaxonkit.list([268197, 9903])
     >>> for taxon, tree in result:
     ...     subtaxa = [t for t in tree.traverse]
     ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
     ...
-    Top level result: Solenopsis (13685); 306 related taxa
+    Top level result: Polistes comanchus (268197); 2 related taxa
     Top level result: Bos (9903); 29 related taxa
     >>> subtaxa[0]
     BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
