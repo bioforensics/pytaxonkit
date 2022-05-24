@@ -18,7 +18,8 @@
             "239694 [species] Symplocos cochinchinensis": {
                 "251585 [varietas] Symplocos cochinchinensis var. laurina": {},
                 "1118787 [varietas] Symplocos cochinchinensis var. glaberrima": {},
-                "1312847 [varietas] Symplocos cochinchinensis var. pilosiuscula": {}
+                "1312847 [varietas] Symplocos cochinchinensis var. pilosiuscula": {},
+                "2900625 [varietas] Symplocos cochinchinensis var. cochinchinensis": {}
             },
             "239695 [species] Symplocos coreana": {},
             "239696 [species] Symplocos ernestii": {},
@@ -30,9 +31,13 @@
             "239702 [species] Symplocos konishii": {},
             "239703 [species] Symplocos kuroki": {},
             "239704 [species] Symplocos lancifolia": {},
-            "239705 [species] Symplocos liukiuensis": {},
+            "239705 [species] Symplocos liukiuensis": {
+                "2918423 [varietas] Symplocos liukiuensis var. iriomotensis": {}
+            },
             "239706 [species] Symplocos modesta": {},
-            "239707 [species] Symplocos myrtacea": {},
+            "239707 [species] Symplocos myrtacea": {
+                "2900626 [varietas] Symplocos myrtacea var. myrtacea": {}
+            },
             "239708 [species] Symplocos nakaharae": {},
             "239709 [species] Symplocos okinawensis": {},
             "239710 [species] Symplocos pergracilis": {},
@@ -40,7 +45,9 @@
                 "239712 [varietas] Symplocos prunifolia var. prunifolia": {},
                 "239713 [varietas] Symplocos prunifolia var. tawadae": {}
             },
-            "239714 [species] Symplocos sawafutagi": {},
+            "239714 [species] Symplocos sawafutagi": {
+                "2900627 [varietas] Symplocos sawafutagi var. sawafutagi": {}
+            },
             "239715 [species] Symplocos sonoharae": {},
             "239716 [species] Symplocos stellaris": {
                 "251559 [varietas] Symplocos stellaris var. aenea": {}
@@ -221,7 +228,18 @@
             "2662168 [species] Symplocos guianensis": {},
             "2687301 [species] Symplocos cambodiana": {},
             "2687304 [species] Symplocos hayatae": {},
-            "2803345 [species] Symplocos juiyenensis": {}
+            "2803345 [species] Symplocos juiyenensis": {},
+            "2945196 [species] Symplocos colombonensis": {},
+            "2945525 [species] Symplocos decora": {},
+            "2945526 [species] Symplocos elliptica": {},
+            "2945527 [species] Symplocos insolita": {},
+            "2945528 [species] Symplocos molinae": {},
+            "2945529 [species] Symplocos obovata": {},
+            "2945530 [species] Symplocos octopetala": {},
+            "2945531 [species] Symplocos peruviana": {},
+            "2945532 [species] Symplocos saxatilis": {},
+            "2945533 [species] Symplocos sulcata": {},
+            "2945534 [species] Symplocos theifolia": {}
         },
         "1340860 [genus] Cordyloblaste": {},
         "2601367 [no rank] environmental samples": {
