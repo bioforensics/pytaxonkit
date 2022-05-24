@@ -559,6 +559,13 @@ def test_name_debug(capsys):
     assert 'taxonkit lineage --show-name --no-lineage' in err
 
 
+def test_name_regression():
+    result = name([6])
+    print(result)
+    assert len(result) == 1
+    assert result.Name[0] == 'Azorhizobium'
+
+
 def test_lineage_empty():
     with pytest.warns(UserWarning, match="No input for pytaxonkit.lineage"):
         result = lineage([])
