@@ -436,8 +436,8 @@ def name(ids, data_dir=None, debug=False):
     1  2216222         Paramyia sp. BIOUG21706-A10
     2   517824  soil bacterium Cipr-S1N-M1LLLSSL-1
     '''
-    idlist = '\n'.join(map(str, ids))
-    if idlist == '':
+    idlist = '\n'.join(map(str, ids)) + '\n'
+    if idlist == '\n':
         warn('No input for pytaxonkit.name', UserWarning)
         return
     arglist = ['taxonkit', 'lineage', '--show-name', '--no-lineage']
@@ -557,6 +557,13 @@ def test_name_debug(capsys):
     ]))
     out, err = capsys.readouterr()
     assert 'taxonkit lineage --show-name --no-lineage' in err
+
+
+def test_name_regression():
+    result = name([6])
+    print(result)
+    assert len(result) == 1
+    assert result.Name[0] == 'Azorhizobium'
 
 
 def test_lineage_empty():
