@@ -24,8 +24,9 @@ Execute `help(pytaxonkit.name2taxid)` (and so on) from the Python interpreter fo
 
 > **NOTES**
 > - The `reformat` operation is automatically run by `pytaxonkit.lineage` and cannot be invoked independently.
-> - The `taxid-changelog` operation is not supported.
 > - The `genautocomplete` operation is specific to the shell and is not supported.
+> - Several other operations are not supported, including `cami-filter`, `create-taxdump`, `profile2cami`, and `taxid-changelog`.
+> - The `pytaxonkit.__version__` variable refers to the version number of the Python bindings, while the `pytaxonkit.__taxonkitversion__` variable corresponds to the version of the installed TaxonKit program. These version numbers are not necessarily equal.
 
 ### name2taxid
 
@@ -95,7 +96,6 @@ BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
 >>> import pytaxonkit
 >>> taxids = [131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960, 50557, 85512, 7496, 33340, 33392, 85604, 7088]
 >>> result = pytaxonkit.filter(taxids, equal_to='phylum', higher_than='phylum')
->>> pytaxonkit.name(result)
 >>> pytaxonkit.name(result)
    TaxID        Name
 0   2759   Eukaryota

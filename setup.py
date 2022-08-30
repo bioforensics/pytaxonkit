@@ -45,30 +45,30 @@ from setuptools import setup
 import versioneer
 
 
-with open('README.md', 'r') as infile:
+with open("README.md", "r") as infile:
     longdesc = infile.read()
 
 setup(
-    name='pytaxonkit',
-    description='Python bindings for the TaxonKit library',
+    name="pytaxonkit",
+    description="Python bindings for the TaxonKit library",
     long_description=longdesc,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    url='https://github.com/bioforensics/pytaxonkit',
-    author='Daniel Standage',
-    author_email='daniel.standage@nbacc.dhs.gov',
-    py_modules=['pytaxonkit', '_version'],
-    python_requires='>=3.6',
-    install_requires=['pytest>=5.4'],
+    url="https://github.com/bioforensics/pytaxonkit",
+    author="Daniel Standage",
+    author_email="daniel.standage@nbacc.dhs.gov",
+    py_modules=["pytaxonkit", "_version"],
+    python_requires=">=3.6",
+    install_requires=["pytest>=5.4"],
     classifiers=[
-        'Environment :: Console',
-        'Framework :: IPython',
-        'Framework :: Jupyter',
-        'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: BSD License',
-        'Programming Language :: Python :: 3',
-        'Topic :: Scientific/Engineering :: Bio-Informatics',
+        "Environment :: Console",
+        "Framework :: IPython",
+        "Framework :: Jupyter",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: BSD License",
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
     ],
     zip_safe=True,
 )

@@ -6,3 +6,4 @@ build/
 sandbox/
 default.profraw
 .DS_Store
+.vscode/
