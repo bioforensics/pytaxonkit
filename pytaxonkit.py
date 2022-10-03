@@ -344,7 +344,7 @@ def lineage(
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
          TaxID                                                                 Lineage                         LineageTaxIDs
     0  1325911     Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
-    1  1649473  Bacteria;Bacteroidetes;Cytophagia;Cytophagales;Spirosomaceae;Nibrella;  2;976;768503;768507;2896860;1649473;
+    1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomaceae;Nibrella;  2;976;768503;768507;2896860;1649473;
     2  1401311        Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
     >>> result = pytaxonkit.lineage(["1382510", "929505", "390333"], formatstr="{f};{g};{s};{S}")
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
@@ -498,7 +498,7 @@ def test_lineage(capsys):
         pd.Series(
             [
                 "Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95",
-                "Bacteria;Bacteroidetes;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;"
+                "Bacteria;Bacteroidota;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;"
                 "Porphyromonas genomosp. P3",
                 "Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina",
                 "Bacteria;Proteobacteria;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;"
@@ -533,7 +533,7 @@ def test_lineage_single_taxid():
 def test_lineage_threads():
     result = lineage(["200643"], threads=1)
     assert result.FullLineage.iloc[0] == (
-        "cellular organisms;Bacteria;FCB group;Bacteroidetes/Chlorobi group;Bacteroidetes;"
+        "cellular organisms;Bacteria;FCB group;Bacteroidetes/Chlorobi group;Bacteroidota;"
         "Bacteroidia"
     )
     assert result.FullLineageRanks.iloc[0] == "no rank;superkingdom;clade;clade;phylum;class"
