@@ -2,11 +2,16 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## Unreleased
+
+### Changed
+- Updates to compensate for changes in the NCBI taxonomy DB (#28, #29)
+
 ## [0.8] 2022-08-30
 
-## Changed
+### Changed
 - Updated doctest for `pytaxonkit.list` to include taxa that are updated in the NCBI taxonomy DB less frequently (#13, #14, #21, #24)
-- Other occasional updates to compensate for changes in the NCBI taxonomy DB (#15, #16, #17, #23, #26, #28, #29)
+- Other occasional updates to compensate for changes in the NCBI taxonomy DB (#15, #16, #17, #23, #26)
 - Updated `pytaxonkit.list_ranks()` to match updated `taxonkit filter --list-order` behavior (#20)
 - Now using Black instead of pycodestyle to check and autoformat Python code (#27)
 
