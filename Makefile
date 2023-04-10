@@ -7,6 +7,8 @@ help: Makefile
 ## test:     execute test suite
 test:
 	COLUMNS=150 pytest --cov=pytaxonkit --doctest-modules pytaxonkit.py conftest.py
+testci:
+	COLUMNS=150 pytest --verbose --cov=pytaxonkit --doctest-modules pytaxonkit.py conftest.py
 test4:
 	COLUMNS=150 pytest -n 4 --cov=pytaxonkit --doctest-modules pytaxonkit.py conftest.py
 

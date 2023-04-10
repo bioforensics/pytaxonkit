@@ -334,18 +334,15 @@ def lineage(
 
     Examples
     --------
-    >>> import pandas
     >>> import pytaxonkit
     >>> result = pytaxonkit.lineage([1325911, 1649473, 1401311])
     >>> result.columns
-    Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank',
-           'FullLineage', 'FullLineageTaxIDs', 'FullLineageRanks'],
-          dtype='object')
+    Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage', 'FullLineageTaxIDs', 'FullLineageRanks'], dtype='object')
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
-         TaxID                                                                 Lineage                         LineageTaxIDs
-    0  1325911     Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
+         TaxID                                                                Lineage                         LineageTaxIDs
+    0  1325911    Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
     1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomaceae;Nibrella;  2;976;768503;768507;2896860;1649473;
-    2  1401311        Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
+    2  1401311       Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
     >>> result = pytaxonkit.lineage(["1382510", "929505", "390333"], formatstr="{f};{g};{s};{S}")
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
          TaxID                                                                                               Lineage         LineageTaxIDs
@@ -498,11 +495,9 @@ def test_lineage(capsys):
         pd.Series(
             [
                 "Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95",
-                "Bacteria;Bacteroidota;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;"
-                "Porphyromonas genomosp. P3",
+                "Bacteria;Bacteroidota;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;Porphyromonas genomosp. P3",
                 "Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina",
-                "Bacteria;Proteobacteria;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;"
-                "Acinetobacter guillouiae",
+                "Bacteria;Pseudomonadota;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;Acinetobacter guillouiae",
                 "Eukaryota;Arthropoda;Insecta;Hemiptera;Lygaeidae;Lygaeosoma;Lygaeosoma sardeum",
             ]
         )
@@ -532,11 +527,9 @@ def test_lineage_single_taxid():
 
 def test_lineage_threads():
     result = lineage(["200643"], threads=1)
-    assert result.FullLineage.iloc[0] == (
-        "cellular organisms;Bacteria;FCB group;Bacteroidetes/Chlorobi group;Bacteroidota;"
-        "Bacteroidia"
-    )
     assert result.FullLineageRanks.iloc[0] == "no rank;superkingdom;clade;clade;phylum;class"
+    expected = "cellular organisms;Bacteria;FCB group;Bacteroidetes/Chlorobi group;Bacteroidota;Bacteroidia"
+    assert result.FullLineage.iloc[0] == expected
 
 
 def test_lineage_name():
@@ -547,18 +540,11 @@ def test_lineage_name():
 def test_lineage_prefix():
     result = lineage([64191], prefix=True)
     obs_out = result.Lineage.iloc[0]
-    exp_out = (
-        "k__Bacteria;p__Proteobacteria;c__Alphaproteobacteria;o__;f__;g__;"
-        "s__magnetic proteobacterium strain rj53"
-    )
+    exp_out = "k__Bacteria;p__Pseudomonadota;c__Alphaproteobacteria;o__;f__;g__;s__magnetic proteobacterium strain rj53"
     assert exp_out == obs_out
     result = lineage(["229933"], prefix=True, prefix_p="PHYLUM:", prefix_c="CLASS:")
     obs_out = result.Lineage.iloc[0]
-    print(obs_out)
-    exp_out = (
-        "k__Bacteria;PHYLUM:Proteobacteria;CLASS:Alphaproteobacteria;o__Rickettsiales;"
-        "f__Anaplasmataceae;g__Wolbachia;s__Wolbachia endosymbiont of Togo hemipterus (strain 1)"
-    )
+    exp_out = "k__Bacteria;PHYLUM:Pseudomonadota;CLASS:Alphaproteobacteria;o__Rickettsiales;f__Anaplasmataceae;g__Wolbachia;s__Wolbachia endosymbiont of Togo hemipterus (strain 1)"
     assert exp_out == obs_out
 
 
@@ -589,10 +575,7 @@ def test_lineage_pseudo_strain():
         prefix=True,
     )
     obs_out = result.Lineage.iloc[0]
-    exp_out = (
-        "k__Bacteria;p__Firmicutes;c__Clostridia;o__Eubacteriales;f__Clostridiaceae;"
-        "g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B"
-    )
+    exp_out = "k__Bacteria;p__Bacillota;c__Clostridia;o__Eubacteriales;f__Clostridiaceae;g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B"
     assert exp_out == obs_out
 
 
@@ -1021,9 +1004,7 @@ def test_filter_save_predictable():
         2731360,
         2731618,
         2731619,
-        28883,
-        10699,
-        196894,
+        2788787,
         1327037,
     ]
     obs_result = filter(
