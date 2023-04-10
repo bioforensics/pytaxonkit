@@ -9,5 +9,5 @@ dependencies:
  - python>=3.6
  - pytest>=5.4
  - pytest-cov>=2.8
- - taxonkit>=0.8
+ - taxonkit>=0.8,<0.14.1
  - wget>=1.20
