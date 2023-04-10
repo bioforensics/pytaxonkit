@@ -49,4 +49,4 @@ jobs:
           make style
       - name: Test with pytest
         run: |
-          COLUMNS=150 pytest --verbose --cov=pytaxonkit --doctest-modules pytaxonkit.py conftest.py
+          make testci

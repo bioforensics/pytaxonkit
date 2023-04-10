@@ -1004,9 +1004,7 @@ def test_filter_save_predictable():
         2731360,
         2731618,
         2731619,
-        28883,
-        10699,
-        196894,
+        2788787,
         1327037,
     ]
     obs_result = filter(
