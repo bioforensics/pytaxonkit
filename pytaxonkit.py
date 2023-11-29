@@ -341,7 +341,7 @@ def lineage(
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
          TaxID                                                                Lineage                         LineageTaxIDs
     0  1325911    Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
-    1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomaceae;Nibrella;  2;976;768503;768507;2896860;1649473;
+    1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomataceae;Nibrella;  2;976;768503;768507;2896860;1649473;
     2  1401311       Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
     >>> result = pytaxonkit.lineage(["1382510", "929505", "390333"], formatstr="{f};{g};{s};{S}")
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
@@ -1085,7 +1085,8 @@ def lca(
     [9605, 9606]
     """
     if multi:
-        idstring = "\n".join([" ".join(map(str, sublist)) for sublist in ids])
+        id_str_list = [" ".join(map(str, sublist)) for sublist in ids]
+        idstring = "\n".join(id_str_list)
     else:
         idstring = " ".join(map(str, ids))
     if idstring == "":
@@ -1112,10 +1113,17 @@ def lca(
         else:
             return None
     results = []
+    query_str_list = []
     for line in out.strip().split("\n"):
         queries, lcataxid = line.split("\t")
+        query_str_list.append(queries)
         results.append(int(lcataxid))
+    missing_ids = set(id_str_list) - set(query_str_list)
+    missing_indexes = [id_str_list.index(missing_id) for missing_id in missing_ids]
+    for missing_index in sorted(missing_indexes):
+        results.insert(missing_index, 0)
     if multi:
+        assert len(results) == len(ids)
         return results
     else:
         assert len(results) == 1
