@@ -1139,7 +1139,7 @@ def test_lca_unfound(capsys):
     assert "taxonkit lca --skip-unfound" in terminal.err
 
 
-def test_lca_keep_invalid(capsys):
+def test_lca_keep_invalid_single(capsys):
     assert lca([11111111], skip_deleted=True, skip_unfound=True) is None
     assert lca([22222222], skip_deleted=True, skip_unfound=True) is None
     assert lca([11111111], skip_deleted=True, skip_unfound=True, keep_invalid=True) == 0
