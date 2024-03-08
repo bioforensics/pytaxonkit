@@ -339,10 +339,10 @@ def lineage(
     >>> result.columns
     Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage', 'FullLineageTaxIDs', 'FullLineageRanks'], dtype='object')
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
-         TaxID                                                                Lineage                         LineageTaxIDs
-    0  1325911    Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
-    1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomaceae;Nibrella;  2;976;768503;768507;2896860;1649473;
-    2  1401311       Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
+         TaxID                                                                  Lineage                         LineageTaxIDs
+    0  1325911      Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
+    1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomataceae;Nibrella;  2;976;768503;768507;2896860;1649473;
+    2  1401311         Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
     >>> result = pytaxonkit.lineage(["1382510", "929505", "390333"], formatstr="{f};{g};{s};{S}")
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
          TaxID                                                                                               Lineage         LineageTaxIDs
@@ -1046,6 +1046,7 @@ def lca(
     multi=False,
     skip_deleted=False,
     skip_unfound=False,
+    keep_invalid=False,
     threads=None,
     data_dir=None,
     debug=False,
@@ -1063,6 +1064,8 @@ def lca(
         Ignore deleted taxids and compute LCA with the remaining taxa
     skip_unfound : bool, default False
         Ignore taxids not found in the taxonomy database and compute LCA with the remaining taxa
+    keep_invalid: bool, default False
+        Returns 0 when all taxids have been skipped from `skip_deleted` or `skip_unfound`
     threads : int
         Override the default taxonkit threads setting
     data_dir : str, default None
@@ -1096,6 +1099,8 @@ def lca(
         arglist.append("--skip-deleted")
     if skip_unfound:
         arglist.append("--skip-unfound")
+    if keep_invalid:
+        arglist.append("--keep-invalid")
     if threads:
         arglist.extend(("--threads", validate_threads(threads)))
     if data_dir:
@@ -1132,6 +1137,36 @@ def test_lca_unfound(capsys):
     assert lca([61021, 61022, 11111111], skip_unfound=True, debug=True) == 2628496
     terminal = capsys.readouterr()
     assert "taxonkit lca --skip-unfound" in terminal.err
+
+
+def test_lca_keep_invalid_single(capsys):
+    assert lca([11111111], skip_deleted=True, skip_unfound=True) is None
+    assert lca([22222222], skip_deleted=True, skip_unfound=True) is None
+    assert lca([11111111], skip_deleted=True, skip_unfound=True, keep_invalid=True) == 0
+    result = lca(
+        [11111111, 22222222],
+        skip_deleted=True,
+        skip_unfound=True,
+        keep_invalid=True,
+        debug=True,
+    )
+    assert result == 0
+    terminal = capsys.readouterr()
+    assert "taxonkit lca --skip-deleted --skip-unfound --keep-invalid" in terminal.err
+
+
+def test_lca_keep_invalid_multi():
+    query = [
+        [743375],
+        [123456789],
+        [987654321],
+        [743375, 123456789],
+        [743375, 987654321],
+        [123456789, 987654321],
+    ]
+    observed = lca(query, skip_deleted=True, skip_unfound=True, keep_invalid=True, multi=True)
+    expected = [743375, 0, 0, 743375, 743375, 0]
+    assert expected == observed
 
 
 @pytest.mark.parametrize(
