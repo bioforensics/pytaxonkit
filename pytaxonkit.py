@@ -1143,7 +1143,14 @@ def test_lca_keep_invalid_single(capsys):
     assert lca([11111111], skip_deleted=True, skip_unfound=True) is None
     assert lca([22222222], skip_deleted=True, skip_unfound=True) is None
     assert lca([11111111], skip_deleted=True, skip_unfound=True, keep_invalid=True) == 0
-    assert lca([11111111, 22222222], skip_deleted=True, skip_unfound=True, keep_invalid=True, debug=True) == 0
+    result = lca(
+        [11111111, 22222222],
+        skip_deleted=True,
+        skip_unfound=True,
+        keep_invalid=True,
+        debug=True,
+    )
+    assert result == 0
     terminal = capsys.readouterr()
     assert "taxonkit lca --skip-deleted --skip-unfound --keep-invalid" in terminal.err
 
@@ -1155,7 +1162,7 @@ def test_lca_keep_invalid_multi():
         [987654321],
         [743375, 123456789],
         [743375, 987654321],
-        [123456789, 987654321]
+        [123456789, 987654321],
     ]
     observed = lca(query, skip_deleted=True, skip_unfound=True, keep_invalid=True, multi=True)
     expected = [743375, 0, 0, 743375, 743375, 0]
