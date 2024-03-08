@@ -36,7 +36,7 @@ jobs:
         run: |
           mkdir ~/.taxonkit
           pushd ~/.taxonkit
-          curl -L -O ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz
+          curl -L -O https://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz
           tar -xzf taxdump.tar.gz
           popd
       - name: Install
