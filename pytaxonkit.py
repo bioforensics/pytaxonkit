@@ -339,10 +339,10 @@ def lineage(
     >>> result.columns
     Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage', 'FullLineageTaxIDs', 'FullLineageRanks'], dtype='object')
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
-         TaxID                                                                Lineage                         LineageTaxIDs
-    0  1325911    Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
-    1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomaceae;Nibrella;  2;976;768503;768507;2896860;1649473;
-    2  1401311       Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
+         TaxID                                                                  Lineage                         LineageTaxIDs
+    0  1325911      Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
+    1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomataceae;Nibrella;  2;976;768503;768507;2896860;1649473;
+    2  1401311         Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
     >>> result = pytaxonkit.lineage(["1382510", "929505", "390333"], formatstr="{f};{g};{s};{S}")
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
          TaxID                                                                                               Lineage         LineageTaxIDs
@@ -1140,12 +1140,26 @@ def test_lca_unfound(capsys):
 
 
 def test_lca_keep_invalid(capsys):
-    assert lca([11111111], skip_deleted=True, skip_unfound=True) == None
-    assert lca([22222222], skip_deleted=True, skip_unfound=True) == None
+    assert lca([11111111], skip_deleted=True, skip_unfound=True) is None
+    assert lca([22222222], skip_deleted=True, skip_unfound=True) is None
     assert lca([11111111], skip_deleted=True, skip_unfound=True, keep_invalid=True) == 0
     assert lca([11111111, 22222222], skip_deleted=True, skip_unfound=True, keep_invalid=True, debug=True) == 0
     terminal = capsys.readouterr()
     assert "taxonkit lca --skip-deleted --skip-unfound --keep-invalid" in terminal.err
+
+
+def test_lca_keep_invalid_multi():
+    query = [
+        [743375],
+        [123456789],
+        [987654321],
+        [743375, 123456789],
+        [743375, 987654321],
+        [123456789, 987654321]
+    ]
+    observed = lca(query, skip_deleted=True, skip_unfound=True, keep_invalid=True, multi=True)
+    expected = [743375, 0, 0, 743375, 743375, 0]
+    assert expected == observed
 
 
 @pytest.mark.parametrize(
