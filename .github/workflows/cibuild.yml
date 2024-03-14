@@ -28,7 +28,7 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.12"
 #          - os: macos-latest
-#            python-version: "3.11"
+#            python-version: "3.9"
     steps:
       - uses: actions/checkout@v1
       - uses: conda-incubator/setup-miniconda@v2
