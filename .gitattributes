@@ -1,1 +1,2 @@
 _version.py export-subst
+pytaxonkit_version.py export-subst
