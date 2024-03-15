@@ -46,13 +46,12 @@ import json
 import os
 import pandas as pd
 from pandas import UInt32Dtype, StringDtype
+from pytaxonkit_version import get_versions
 import pytest
 from subprocess import Popen, PIPE
 import sys
 from tempfile import NamedTemporaryFile
 from warnings import warn
-
-from _version import get_versions
 
 __version__ = get_versions()["version"]
 del get_versions
