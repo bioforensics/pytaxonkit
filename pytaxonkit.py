@@ -873,7 +873,37 @@ def list_ranks_db(rank_file=None, debug=False):
     return pylist(data.Rank)
 
 
-def test_filter_higher_than():
+@pytest.mark.parametrize(
+    "discard_norank,exp_result",
+    [
+        (True, [2759, 33208, 6656, 6960, 50557, 7496, 33340, 33392, 7399]),
+        (
+            False,
+            [
+                131567,
+                2759,
+                33154,
+                33208,
+                6072,
+                33213,
+                33317,
+                1206794,
+                88770,
+                6656,
+                197563,
+                197562,
+                6960,
+                50557,
+                85512,
+                7496,
+                33340,
+                33392,
+                7399,
+            ],
+        ),
+    ],
+)
+def test_filter_higher_than(discard_norank, exp_result):
     taxids = [
         131567,
         2759,
@@ -904,8 +934,9 @@ def test_filter_higher_than():
         2056706,
         599582,
     ]
-    obs_result = filter(taxids, threads=1, higher_than="order", equal_to="order")
-    exp_result = [2759, 33208, 6656, 6960, 50557, 7496, 33340, 33392, 7399]
+    obs_result = filter(
+        taxids, threads=1, higher_than="order", equal_to="order", discard_norank=discard_norank
+    )
     assert obs_result == exp_result
 
 
@@ -945,7 +976,30 @@ def test_filter_lower_than(capsys):
     assert "taxonkit filter --lower-than family" in terminal.err
 
 
-def test_filter_equal_to_multi(capsys):
+@pytest.mark.parametrize(
+    "discard_norank,exp_result",
+    [
+        (True, [6656, 87479]),
+        (
+            False,
+            [
+                131567,
+                33154,
+                6072,
+                33213,
+                33317,
+                1206794,
+                88770,
+                6656,
+                197563,
+                197562,
+                85512,
+                87479,
+            ],
+        ),
+    ],
+)
+def test_filter_equal_to_multi(capsys, discard_norank, exp_result):
     taxids = [
         131567,
         2759,
@@ -974,8 +1028,9 @@ def test_filter_equal_to_multi(capsys):
         87479,
         412111,
     ]
-    obs_result = filter(taxids, threads=1, equal_to=["phylum", "genus"], debug=True)
-    exp_result = [6656, 87479]
+    obs_result = filter(
+        taxids, threads=1, equal_to=["phylum", "genus"], debug=True, discard_norank=discard_norank
+    )
     assert obs_result == exp_result
     terminal = capsys.readouterr()
     assert "--equal-to phylum,genus" in terminal.err
