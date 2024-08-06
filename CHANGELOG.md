@@ -2,10 +2,21 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## [0.9.1] 2024-08-05
 
 ### Changed
-- Updates to compensate for changes in the NCBI taxonomy DB (#28, #29)
+- Updated version of bundled versioneer package for Python 3.12 compatibility, improved environment hygiene (#36)
+- Updated test suite to accommodate bugfix affecting `taxonkit filter` behavior with `discard_norank` argument (#37)
+
+
+## [0.9] 2024-03-08
+
+### Added
+- Support for new -K/--keep-invalid flag in taxonkit lca command (#35); see https://github.com/shenwei356/taxonkit/releases/tag/v0.16.0
+
+### Changed
+- Updated test suite to accommodate taxonomy DB changes (#28, #29, #30)
+
 
 ## [0.8] 2022-08-30
 
