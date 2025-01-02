@@ -526,8 +526,10 @@ def test_lineage_single_taxid():
 
 def test_lineage_threads():
     result = lineage(["200643"], threads=1)
-    assert result.FullLineageRanks.iloc[0] == "no rank;superkingdom;clade;clade;phylum;class"
-    expected = "cellular organisms;Bacteria;FCB group;Bacteroidota/Chlorobiota group;Bacteroidota;Bacteroidia"
+    assert (
+        result.FullLineageRanks.iloc[0] == "no rank;superkingdom;kingdom;clade;clade;phylum;class"
+    )
+    expected = "cellular organisms;Bacteria;Pseudomonadati;FCB group;Bacteroidota/Chlorobiota group;Bacteroidota;Bacteroidia"
     assert result.FullLineage.iloc[0] == expected
 
 
