@@ -493,22 +493,22 @@ def test_lineage(capsys):
     assert result.Lineage.equals(
         pd.Series(
             [
-                "Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95",
-                "Bacteria;Bacteroidota;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;Porphyromonas genomosp. P3",
-                "Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina",
-                "Bacteria;Pseudomonadota;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;Acinetobacter guillouiae",
-                "Eukaryota;Arthropoda;Insecta;Hemiptera;Lygaeidae;Lygaeosoma;Lygaeosoma sardeum",
+                ";Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95",
+                ";Bacteroidota;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;Porphyromonas genomosp. P3",
+                ";Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina",
+                ";Pseudomonadota;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;Acinetobacter guillouiae",
+                ";Arthropoda;Insecta;Hemiptera;Lygaeidae;Lygaeosoma;Lygaeosoma sardeum",
             ]
         )
     )
     assert result.LineageTaxIDs.equals(
         pd.Series(
             [
-                "2759;555280;;1485168;33677;5754;1082657",
-                "2;976;200643;171549;171551;836;265720",
-                "2759;5204;155619;452342;5401;5402;1191593",
-                "2;1224;1236;2887326;468;469;106649",
-                "2759;6656;50557;7524;7533;2868952;2868953",
+                ";555280;;1485168;33677;5754;1082657",
+                ";976;200643;171549;171551;836;265720",
+                ";5204;155619;452342;5401;5402;1191593",
+                ";1224;1236;2887326;468;469;106649",
+                ";6656;50557;7524;7533;2868952;2868953",
             ]
         )
     )
@@ -527,7 +527,7 @@ def test_lineage_single_taxid():
 def test_lineage_threads():
     result = lineage(["200643"], threads=1)
     assert (
-        result.FullLineageRanks.iloc[0] == "no rank;superkingdom;kingdom;clade;clade;phylum;class"
+        result.FullLineageRanks.iloc[0] == "cellular root;domain;kingdom;clade;clade;phylum;class"
     )
     expected = "cellular organisms;Bacteria;Pseudomonadati;FCB group;Bacteroidota/Chlorobiota group;Bacteroidota;Bacteroidia"
     assert result.FullLineage.iloc[0] == expected
@@ -552,9 +552,7 @@ def test_lineage_prefix():
 def test_lineage_prefix_no_effect():
     result = lineage([325064], prefix_o="ORDER:")
     obs_out = result.Lineage.iloc[0]
-    exp_out = (
-        "Eukaryota;Discosea;Flabellinia;;Vannellidae;Platyamoeba;Platyamoeba sp. strain AFSM6/I"
-    )
+    exp_out = ";Discosea;Flabellinia;;Vannellidae;Platyamoeba;Platyamoeba sp. strain AFSM6/I"
     assert exp_out == obs_out
 
 
@@ -570,13 +568,13 @@ def test_lineage_bad_prefix():
 def test_lineage_pseudo_strain():
     result = lineage(
         [36827],
-        formatstr="{k};{p};{c};{o};{f};{g};{s};{t}",
+        formatstr="{K};{p};{c};{o};{f};{g};{s};{t}",
         fill_missing=True,
         pseudo_strain=True,
         prefix=True,
     )
     obs_out = result.Lineage.iloc[0]
-    exp_out = "k__Bacteria;p__Bacillota;c__Clostridia;o__Eubacteriales;f__Clostridiaceae;g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B"
+    exp_out = "K__Bacillati;p__Bacillota;c__Clostridia;o__Eubacteriales;f__Clostridiaceae;g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B"
     assert exp_out == obs_out
 
 
