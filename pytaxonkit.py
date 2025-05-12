@@ -194,7 +194,7 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
     ...
     Top level result: Polistes comanchus (268197); 2 related taxa
-    Top level result: Bos (9903); 30 related taxa
+    Top level result: Bos (9903); 32 related taxa
     >>> subtaxa[0]
     BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
     >>> pytaxonkit.list([9605], raw=True)
@@ -338,10 +338,10 @@ def lineage(
     >>> result.columns
     Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage', 'FullLineageTaxIDs', 'FullLineageRanks'], dtype='object')
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
-         TaxID                                                                  Lineage                         LineageTaxIDs
-    0  1325911      Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
-    1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomataceae;Nibrella;  2;976;768503;768507;2896860;1649473;
-    2  1401311         Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
+         TaxID                                                          Lineage                        LineageTaxIDs
+    0  1325911       ;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;     ;6656;50557;7399;216140;1325911;
+    1  1649473  ;Bacteroidota;Cytophagia;Cytophagales;Spirosomataceae;Nibrella;  ;976;768503;768507;2896860;1649473;
+    2  1401311          ;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;      ;6656;50557;7041;29026;1401311;
     >>> result = pytaxonkit.lineage(["1382510", "929505", "390333"], formatstr="{f};{g};{s};{S}")
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
          TaxID                                                                                               Lineage         LineageTaxIDs
@@ -769,7 +769,7 @@ def filter(
     >>> pytaxonkit.filter(taxids, blacklist=["family", "species"])
     [131567, 2, 1783257, 74201, 203494, 48461, 239934, 349741]
     >>> pytaxonkit.filter(taxids, lower_than="genus")
-    [131567, 1783257, 239935, 349741]
+    [1783257, 239935, 349741]
     """
     if higher_than is not None and lower_than is not None:
         raise ValueError('cannot specify "higher_than" and "lower_than" simultaneously')
@@ -827,7 +827,7 @@ def list_ranks(rank_file=None, debug=False):
     >>> import pytaxonkit
     >>> ranks = pytaxonkit.list_ranks()
     >>> ranks[:5]
-    ['life', ['domain', 'empire', 'realm', 'superkingdom'], 'kingdom', 'subkingdom', 'infrakingdom']
+    ['life', 'acellular', ['root', 'cellular'], 'root', ['domain', 'empire', 'realm', 'superkingdom']]
     """  # noqa: E501
     arglist = ["taxonkit", "filter", "--list-order"]
     if rank_file:  # pragma: no cover
@@ -862,7 +862,7 @@ def list_ranks_db(rank_file=None, debug=False):
     >>> import pytaxonkit
     >>> ranks = pytaxonkit.list_ranks_db()
     >>> ranks[:5]
-    ['superkingdom', 'kingdom', 'subkingdom', 'superphylum', 'phylum']
+    ['acellular root', 'cellular root', 'domain', 'realm', 'kingdom']
     """
     arglist = ["taxonkit", "filter", "--list-ranks"]
     if rank_file:  # pragma: no cover
