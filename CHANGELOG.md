@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- Swapped `taxonkit reformat` for `taxonkit reformat2` to restore sane default behaviors after NBCI shuffled ranks near the root of the taxonomy database (#43, #44)
+
+
 ## [0.9.1] 2024-08-05
 
 ### Changed

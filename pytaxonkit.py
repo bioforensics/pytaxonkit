@@ -286,11 +286,7 @@ def lineage(
     formatstr=None,
     threads=None,
     data_dir=None,
-    prefix=False,
-    pseudo_strain=False,
-    fill_missing=False,
     debug=False,
-    **kwargs,
 ):
     """query lineage of given taxids
 
@@ -302,24 +298,13 @@ def lineage(
     ids : list or iterable
         A list of taxids (ints or strings are ok)
     formatstr : str, default None
-        See [taxonkit reformat documentation](https://bioinf.shenwei.me/taxonkit/usage/#reformat)
-        for instructions on setting `formatstr` to override the default "standard" lineage format
+        See [taxonkit reformat2 documentation](https://bioinf.shenwei.me/taxonkit/usage/#reformat)
+        for instructions on setting `formatstr` to override the default standard lineage format
     threads : int
         Override the default taxonkit threads setting
     data_dir : str, default None
         Specify the location of the NCBI taxonomy `.dmp` files; by default, taxonkit searches in
         `~/.taxonkit/`
-    prefix : bool, default False
-        add prefixes to each name indicating rank
-    prefix_* : str, default None
-        When `prefix=True`, override default prefix for the specified rank; replace `*` with one of
-        k, p, c, o, f, g, s, S corresponding to (super)kingdom, phylum, class, order, family,
-        genus, species, subspecies; for example, `prefix_g='GENUS:', prefix_s='SPECIES:'`
-    pseudo_strain : bool, default False
-        Use the node with lowest rank as the strain name, only if that rank is lower than "species"
-        and not "subspecies" nor "strain"
-    fill_missing : bool, default False
-        Fill missing rank with lineage information of the next higher rank
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
 
@@ -338,16 +323,16 @@ def lineage(
     >>> result.columns
     Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage', 'FullLineageTaxIDs', 'FullLineageRanks'], dtype='object')
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
-         TaxID                                                          Lineage                        LineageTaxIDs
-    0  1325911       ;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;     ;6656;50557;7399;216140;1325911;
-    1  1649473  ;Bacteroidota;Cytophagia;Cytophagales;Spirosomataceae;Nibrella;  ;976;768503;768507;2896860;1649473;
-    2  1401311          ;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;      ;6656;50557;7041;29026;1401311;
-    >>> result = pytaxonkit.lineage(["1382510", "929505", "390333"], formatstr="{f};{g};{s};{S}")
+         TaxID                                                                  Lineage                         LineageTaxIDs
+    0  1325911      Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
+    1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomataceae;Nibrella;  2;976;768503;768507;2896860;1649473;
+    2  1401311         Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
+    >>> result = pytaxonkit.lineage(["1382510", "929505", "390333"], formatstr="{family};{genus};{species};{subspecies|strain}")
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
-         TaxID                                                                                               Lineage         LineageTaxIDs
-    0  1382510                                                     Enterobacteriaceae;Salmonella;Salmonella bongori;        543;590;54736;
-    1   929505                                                     Clostridiaceae;Clostridium;Clostridium botulinum;      31979;1485;1491;
-    2   390333  Lactobacillaceae;Lactobacillus;Lactobacillus delbrueckii;Lactobacillus delbrueckii subsp. bulgaricus  33958;1578;1584;1585
+         TaxID                                                                                               Lineage           LineageTaxIDs
+    0  1382510    Enterobacteriaceae;Salmonella;Salmonella bongori;Salmonella bongori serovar 48:z41:-- str. RKS3044   543;590;54736;1382510
+    1   929505               Clostridiaceae;Clostridium;Clostridium botulinum;Clostridium botulinum C str. Stockholm  31979;1485;1491;929505
+    2   390333  Lactobacillaceae;Lactobacillus;Lactobacillus delbrueckii;Lactobacillus delbrueckii subsp. bulgaricus    33958;1578;1584;1585
     """  # noqa: E501
     idlist = "\n".join(map(str, ids))
     if idlist == "":
@@ -378,30 +363,16 @@ def lineage(
         extraargs = []
         if formatstr:
             extraargs.extend(("--format", formatstr))
-        if prefix:
-            extraargs.append("--add-prefix")
-        for key, value in kwargs.items():
-            if key.count("_") != 1:
-                raise TypeError(f'unexpected keyword argument "{key}"')
-            prefix, subkey = key.split("_")
-            if prefix != "prefix" or subkey not in "kpcofgsStT":
-                raise TypeError(f'unexpected keyword argument "{key}"')
-            flag = f"--prefix-{subkey}"
-            extraargs.extend((flag, value))
         if threads:
             extraargs.extend(("--threads", validate_threads(threads)))
-        if pseudo_strain:
-            extraargs.append("--pseudo-strain")
-        if fill_missing:
-            extraargs.append("--fill-miss-rank")
         if data_dir:
             extraargs.extend(("--data-dir", validate_data_dir(data_dir)))  # pragma: no cover
         arglist = [
             "taxonkit",
-            "reformat",
+            "reformat2",
             *extraargs,
-            "--lineage-field",
-            "3",
+            "--taxid-field",
+            "1",
             "--show-lineage-taxids",
             lineagefile.name,
         ]
@@ -493,22 +464,23 @@ def test_lineage(capsys):
     assert result.Lineage.equals(
         pd.Series(
             [
-                ";Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95",
-                ";Bacteroidota;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;Porphyromonas genomosp. P3",
-                ";Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina",
-                ";Pseudomonadota;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;Acinetobacter guillouiae",
-                ";Arthropoda;Insecta;Hemiptera;Lygaeidae;Lygaeosoma;Lygaeosoma sardeum",
+                "Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95",
+                "Bacteria;Bacteroidota;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;Porphyromonas genomosp. P3",
+                "Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina",
+                "Bacteria;Pseudomonadota;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;Acinetobacter guillouiae",
+                "Eukaryota;Arthropoda;Insecta;Hemiptera;Lygaeidae;Lygaeosoma;Lygaeosoma sardeum",
             ]
         )
     )
+    print(result.LineageTaxIDs.to_list())
     assert result.LineageTaxIDs.equals(
         pd.Series(
             [
-                ";555280;;1485168;33677;5754;1082657",
-                ";976;200643;171549;171551;836;265720",
-                ";5204;155619;452342;5401;5402;1191593",
-                ";1224;1236;2887326;468;469;106649",
-                ";6656;50557;7524;7533;2868952;2868953",
+                "2759;555280;;1485168;33677;5754;1082657",
+                "2;976;200643;171549;171551;836;265720",
+                "2759;5204;155619;452342;5401;5402;1191593",
+                "2;1224;1236;2887326;468;469;106649",
+                "2759;6656;50557;7524;7533;2868952;2868953",
             ]
         )
     )
@@ -516,7 +488,7 @@ def test_lineage(capsys):
 
     out, err = capsys.readouterr()
     assert "taxonkit lineage --show-lineage-taxids --show-rank --show-status-code" in err
-    assert "taxonkit reformat --lineage-field 3 --show-lineage-taxids" in err
+    assert "taxonkit reformat2 --taxid-field 1 --show-lineage-taxids" in err
 
 
 def test_lineage_single_taxid():
@@ -538,45 +510,16 @@ def test_lineage_name():
     assert result.Name.iloc[0] == "Henosepilachna sp. AGBA-2008"
 
 
-def test_lineage_prefix():
-    result = lineage([64191], prefix=True)
+def test_lineage_format():
+    formatstr = "k__{domain|acellular root|superkingdom};p__{phylum};c__{class};o__{order};f__{family};g__{genus};s__{species}"
+    result = lineage([64191], formatstr=formatstr)
     obs_out = result.Lineage.iloc[0]
-    exp_out = (
-        ";p__Pseudomonadota;c__Alphaproteobacteria;;;;s__magnetic proteobacterium strain rj53"
-    )
+    exp_out = "k__Bacteria;p__Pseudomonadota;c__Alphaproteobacteria;o__;f__;g__;s__magnetic proteobacterium strain rj53"
     assert exp_out == obs_out
-    result = lineage(["229933"], prefix=True, prefix_p="PHYLUM:", prefix_c="CLASS:")
+    formatstr = "k__{domain|acellular root|superkingdom};PHYLUM:{phylum};CLASS:{class};o__{order};f__{family};g__{genus};s__{species}"
+    result = lineage(["229933"], formatstr=formatstr)
     obs_out = result.Lineage.iloc[0]
-    exp_out = ";PHYLUM:Pseudomonadota;CLASS:Alphaproteobacteria;o__Rickettsiales;f__Anaplasmataceae;g__Wolbachia;s__Wolbachia endosymbiont of Togo hemipterus (strain 1)"
-    assert exp_out == obs_out
-
-
-def test_lineage_prefix_no_effect():
-    result = lineage([325064], prefix_o="ORDER:")
-    obs_out = result.Lineage.iloc[0]
-    exp_out = ";Discosea;Flabellinia;;Vannellidae;Platyamoeba;Platyamoeba sp. strain AFSM6/I"
-    assert exp_out == obs_out
-
-
-def test_lineage_bad_prefix():
-    with pytest.raises(TypeError, match=r'unexpected keyword argument "prefix_bOguSrANk"'):
-        lineage([325064], prefix_bOguSrANk="BOGUS:")
-    with pytest.raises(TypeError, match=r'unexpected keyword argument "prefix_g_s"'):
-        lineage([325064], prefix_g_s="GS:")
-    with pytest.raises(TypeError, match=r'unexpected keyword argument "breakfast_sausage"'):
-        lineage([325064], breakfast_sausage="YUM")
-
-
-def test_lineage_pseudo_strain():
-    result = lineage(
-        [36827],
-        formatstr="{k};{p};{c};{o};{f};{g};{s};{t}",
-        fill_missing=True,
-        pseudo_strain=True,
-        prefix=True,
-    )
-    obs_out = result.Lineage.iloc[0]
-    exp_out = "k__unclassified cellular organisms superkingdom;p__Bacillota;c__Clostridia;o__Eubacteriales;f__Clostridiaceae;g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B"
+    exp_out = "k__Bacteria;PHYLUM:Pseudomonadota;CLASS:Alphaproteobacteria;o__Rickettsiales;f__Anaplasmataceae;g__Wolbachia;s__Wolbachia endosymbiont of Togo hemipterus (strain 1)"
     assert exp_out == obs_out
 
 
@@ -765,11 +708,33 @@ def filter(
         A list of taxids passing the specified filters.
 
     >>> import pytaxonkit
-    >>> taxids = [131567, 2, 1783257, 74201, 203494, 48461, 1647988, 239934, 239935, 349741]
-    >>> pytaxonkit.filter(taxids, blacklist=["family", "species"])
-    [131567, 2, 1783257, 74201, 203494, 48461, 239934, 349741]
-    >>> pytaxonkit.filter(taxids, lower_than="genus")
-    [1783257, 239935, 349741]
+    >>> taxids = [131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960, 50557, 85512, 7496, 33340, 33392, 85604, 7088]
+    >>> result = pytaxonkit.filter(taxids, equal_to='phylum', higher_than='phylum')
+    >>> pytaxonkit.name(result)
+          TaxID                Name
+    0    131567  cellular organisms
+    1      2759           Eukaryota
+    2     33154        Opisthokonta
+    3     33208             Metazoa
+    4      6072           Eumetazoa
+    5     33213           Bilateria
+    6     33317         Protostomia
+    7   1206794           Ecdysozoa
+    8     88770       Panarthropoda
+    9      6656          Arthropoda
+    10   197563         Mandibulata
+    11   197562        Pancrustacea
+    12    85512          Dicondylia
+    >>> taxids = [131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960, 50557, 85512, 7496, 33340, 33342, 7524]
+    >>> result = pytaxonkit.filter(taxids, lower_than='phylum', discard_norank=True)
+    >>> pytaxonkit.name(result)
+       TaxID          Name
+    0   6960      Hexapoda
+    1  50557       Insecta
+    2   7496     Pterygota
+    3  33340      Neoptera
+    4  33342  Paraneoptera
+    5   7524     Hemiptera
     """
     if higher_than is not None and lower_than is not None:
         raise ValueError('cannot specify "higher_than" and "lower_than" simultaneously')
@@ -1114,6 +1079,15 @@ def lca(
     Examples
     --------
     >>> import pytaxonkit
+    >>> taxids = pytaxonkit.name2taxid(['Polistes metricus', 'Nasonia vitripennis'])
+    >>> taxids
+                      Name  TaxID     Rank
+    0    Polistes metricus  91422  species
+    1  Nasonia vitripennis   7425  species
+    >>> ancestor = pytaxonkit.lca(taxids.TaxID)
+    >>> pytaxonkit.name([ancestor])
+       TaxID      Name
+    0   7400  Apocrita
     >>> pytaxonkit.lca([239934, 239935, 349741])
     239934
     >>> pytaxonkit.lca([[63221, 2665953], [63221, 741158]], multi=True)
