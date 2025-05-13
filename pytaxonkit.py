@@ -708,11 +708,33 @@ def filter(
         A list of taxids passing the specified filters.
 
     >>> import pytaxonkit
-    >>> taxids = [131567, 2, 1783257, 74201, 203494, 48461, 1647988, 239934, 239935, 349741]
-    >>> pytaxonkit.filter(taxids, blacklist=["family", "species"])
-    [131567, 2, 1783257, 74201, 203494, 48461, 239934, 349741]
-    >>> pytaxonkit.filter(taxids, lower_than="genus")
-    [1783257, 239935, 349741]
+    >>> taxids = [131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960, 50557, 85512, 7496, 33340, 33392, 85604, 7088]
+    >>> result = pytaxonkit.filter(taxids, equal_to='phylum', higher_than='phylum')
+    >>> pytaxonkit.name(result)
+          TaxID                Name
+    0    131567  cellular organisms
+    1      2759           Eukaryota
+    2     33154        Opisthokonta
+    3     33208             Metazoa
+    4      6072           Eumetazoa
+    5     33213           Bilateria
+    6     33317         Protostomia
+    7   1206794           Ecdysozoa
+    8     88770       Panarthropoda
+    9      6656          Arthropoda
+    10   197563         Mandibulata
+    11   197562        Pancrustacea
+    12    85512          Dicondylia
+    >>> taxids = [131567, 2759, 33154, 33208, 6072, 33213, 33317, 1206794, 88770, 6656, 197563, 197562, 6960, 50557, 85512, 7496, 33340, 33342, 7524]
+    >>> result = pytaxonkit.filter(taxids, lower_than='phylum', discard_norank=True)
+    >>> pytaxonkit.name(result)
+       TaxID          Name
+    0   6960      Hexapoda
+    1  50557       Insecta
+    2   7496     Pterygota
+    3  33340      Neoptera
+    4  33342  Paraneoptera
+    5   7524     Hemiptera
     """
     if higher_than is not None and lower_than is not None:
         raise ValueError('cannot specify "higher_than" and "lower_than" simultaneously')
@@ -1057,6 +1079,15 @@ def lca(
     Examples
     --------
     >>> import pytaxonkit
+    >>> taxids = pytaxonkit.name2taxid(['Polistes metricus', 'Nasonia vitripennis'])
+    >>> taxids
+                      Name  TaxID     Rank
+    0    Polistes metricus  91422  species
+    1  Nasonia vitripennis   7425  species
+    >>> ancestor = pytaxonkit.lca(taxids.TaxID)
+    >>> pytaxonkit.name([ancestor])
+       TaxID      Name
+    0   7400  Apocrita
     >>> pytaxonkit.lca([239934, 239935, 349741])
     239934
     >>> pytaxonkit.lca([[63221, 2665953], [63221, 741158]], multi=True)
