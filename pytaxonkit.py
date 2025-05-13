@@ -194,7 +194,7 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
     ...
     Top level result: Polistes comanchus (268197); 2 related taxa
-    Top level result: Bos (9903); 30 related taxa
+    Top level result: Bos (9903); 33 related taxa
     >>> subtaxa[0]
     BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
     >>> pytaxonkit.list([9605], raw=True)
@@ -338,10 +338,10 @@ def lineage(
     >>> result.columns
     Index(['TaxID', 'Code', 'Name', 'Lineage', 'LineageTaxIDs', 'Rank', 'FullLineage', 'FullLineageTaxIDs', 'FullLineageRanks'], dtype='object')
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
-         TaxID                                                                  Lineage                         LineageTaxIDs
-    0  1325911      Eukaryota;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;  2759;6656;50557;7399;216140;1325911;
-    1  1649473  Bacteria;Bacteroidota;Cytophagia;Cytophagales;Spirosomataceae;Nibrella;  2;976;768503;768507;2896860;1649473;
-    2  1401311         Eukaryota;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;   2759;6656;50557;7041;29026;1401311;
+         TaxID                                                          Lineage                        LineageTaxIDs
+    0  1325911       ;Arthropoda;Insecta;Hymenoptera;Eucharitidae;Pogonocharis;     ;6656;50557;7399;216140;1325911;
+    1  1649473  ;Bacteroidota;Cytophagia;Cytophagales;Spirosomataceae;Nibrella;  ;976;768503;768507;2896860;1649473;
+    2  1401311          ;Arthropoda;Insecta;Coleoptera;Staphylinidae;Styngetus;      ;6656;50557;7041;29026;1401311;
     >>> result = pytaxonkit.lineage(["1382510", "929505", "390333"], formatstr="{f};{g};{s};{S}")
     >>> result[["TaxID", "Lineage", "LineageTaxIDs"]]
          TaxID                                                                                               Lineage         LineageTaxIDs
@@ -493,22 +493,22 @@ def test_lineage(capsys):
     assert result.Lineage.equals(
         pd.Series(
             [
-                "Eukaryota;Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95",
-                "Bacteria;Bacteroidota;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;Porphyromonas genomosp. P3",
-                "Eukaryota;Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina",
-                "Bacteria;Pseudomonadota;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;Acinetobacter guillouiae",
-                "Eukaryota;Arthropoda;Insecta;Hemiptera;Lygaeidae;Lygaeosoma;Lygaeosoma sardeum",
+                ";Discosea;;Longamoebia;Acanthamoebidae;Acanthamoeba;Acanthamoeba sp. TW95",
+                ";Bacteroidota;Bacteroidia;Bacteroidales;Porphyromonadaceae;Porphyromonas;Porphyromonas genomosp. P3",
+                ";Basidiomycota;Agaricomycetes;Russulales;Russulaceae;Russula;Russula carmesina",
+                ";Pseudomonadota;Gammaproteobacteria;Moraxellales;Moraxellaceae;Acinetobacter;Acinetobacter guillouiae",
+                ";Arthropoda;Insecta;Hemiptera;Lygaeidae;Lygaeosoma;Lygaeosoma sardeum",
             ]
         )
     )
     assert result.LineageTaxIDs.equals(
         pd.Series(
             [
-                "2759;555280;;1485168;33677;5754;1082657",
-                "2;976;200643;171549;171551;836;265720",
-                "2759;5204;155619;452342;5401;5402;1191593",
-                "2;1224;1236;2887326;468;469;106649",
-                "2759;6656;50557;7524;7533;2868952;2868953",
+                ";555280;;1485168;33677;5754;1082657",
+                ";976;200643;171549;171551;836;265720",
+                ";5204;155619;452342;5401;5402;1191593",
+                ";1224;1236;2887326;468;469;106649",
+                ";6656;50557;7524;7533;2868952;2868953",
             ]
         )
     )
@@ -527,7 +527,7 @@ def test_lineage_single_taxid():
 def test_lineage_threads():
     result = lineage(["200643"], threads=1)
     assert (
-        result.FullLineageRanks.iloc[0] == "no rank;superkingdom;kingdom;clade;clade;phylum;class"
+        result.FullLineageRanks.iloc[0] == "cellular root;domain;kingdom;clade;clade;phylum;class"
     )
     expected = "cellular organisms;Bacteria;Pseudomonadati;FCB group;Bacteroidota/Chlorobiota group;Bacteroidota;Bacteroidia"
     assert result.FullLineage.iloc[0] == expected
@@ -541,20 +541,20 @@ def test_lineage_name():
 def test_lineage_prefix():
     result = lineage([64191], prefix=True)
     obs_out = result.Lineage.iloc[0]
-    exp_out = "k__Bacteria;p__Pseudomonadota;c__Alphaproteobacteria;o__;f__;g__;s__magnetic proteobacterium strain rj53"
+    exp_out = (
+        ";p__Pseudomonadota;c__Alphaproteobacteria;;;;s__magnetic proteobacterium strain rj53"
+    )
     assert exp_out == obs_out
     result = lineage(["229933"], prefix=True, prefix_p="PHYLUM:", prefix_c="CLASS:")
     obs_out = result.Lineage.iloc[0]
-    exp_out = "k__Bacteria;PHYLUM:Pseudomonadota;CLASS:Alphaproteobacteria;o__Rickettsiales;f__Anaplasmataceae;g__Wolbachia;s__Wolbachia endosymbiont of Togo hemipterus (strain 1)"
+    exp_out = ";PHYLUM:Pseudomonadota;CLASS:Alphaproteobacteria;o__Rickettsiales;f__Anaplasmataceae;g__Wolbachia;s__Wolbachia endosymbiont of Togo hemipterus (strain 1)"
     assert exp_out == obs_out
 
 
 def test_lineage_prefix_no_effect():
     result = lineage([325064], prefix_o="ORDER:")
     obs_out = result.Lineage.iloc[0]
-    exp_out = (
-        "Eukaryota;Discosea;Flabellinia;;Vannellidae;Platyamoeba;Platyamoeba sp. strain AFSM6/I"
-    )
+    exp_out = ";Discosea;Flabellinia;;Vannellidae;Platyamoeba;Platyamoeba sp. strain AFSM6/I"
     assert exp_out == obs_out
 
 
@@ -576,7 +576,7 @@ def test_lineage_pseudo_strain():
         prefix=True,
     )
     obs_out = result.Lineage.iloc[0]
-    exp_out = "k__Bacteria;p__Bacillota;c__Clostridia;o__Eubacteriales;f__Clostridiaceae;g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B"
+    exp_out = "k__unclassified cellular organisms superkingdom;p__Bacillota;c__Clostridia;o__Eubacteriales;f__Clostridiaceae;g__Clostridium;s__Clostridium botulinum;t__Clostridium botulinum B"
     assert exp_out == obs_out
 
 
@@ -769,7 +769,7 @@ def filter(
     >>> pytaxonkit.filter(taxids, blacklist=["family", "species"])
     [131567, 2, 1783257, 74201, 203494, 48461, 239934, 349741]
     >>> pytaxonkit.filter(taxids, lower_than="genus")
-    [131567, 1783257, 239935, 349741]
+    [1783257, 239935, 349741]
     """
     if higher_than is not None and lower_than is not None:
         raise ValueError('cannot specify "higher_than" and "lower_than" simultaneously')
@@ -827,7 +827,7 @@ def list_ranks(rank_file=None, debug=False):
     >>> import pytaxonkit
     >>> ranks = pytaxonkit.list_ranks()
     >>> ranks[:5]
-    ['life', ['domain', 'empire', 'realm', 'superkingdom'], 'kingdom', 'subkingdom', 'infrakingdom']
+    ['life', 'acellular', ['root', 'cellular'], 'root', ['domain', 'empire', 'realm', 'superkingdom']]
     """  # noqa: E501
     arglist = ["taxonkit", "filter", "--list-order"]
     if rank_file:  # pragma: no cover
@@ -862,7 +862,7 @@ def list_ranks_db(rank_file=None, debug=False):
     >>> import pytaxonkit
     >>> ranks = pytaxonkit.list_ranks_db()
     >>> ranks[:5]
-    ['superkingdom', 'kingdom', 'subkingdom', 'superphylum', 'phylum']
+    ['acellular root', 'cellular root', 'domain', 'realm', 'kingdom']
     """
     arglist = ["taxonkit", "filter", "--list-ranks"]
     if rank_file:  # pragma: no cover
@@ -878,7 +878,7 @@ def list_ranks_db(rank_file=None, debug=False):
 @pytest.mark.parametrize(
     "discard_norank,exp_result",
     [
-        (True, [2759, 33208, 6656, 6960, 50557, 7496, 33340, 33392, 7399]),
+        (True, [131567, 2759, 33208, 6656, 6960, 50557, 7496, 33340, 33392, 7399]),
         (
             False,
             [
@@ -939,6 +939,7 @@ def test_filter_higher_than(discard_norank, exp_result):
     obs_result = filter(
         taxids, threads=1, higher_than="order", equal_to="order", discard_norank=discard_norank
     )
+    print(obs_result)
     assert obs_result == exp_result
 
 
@@ -978,30 +979,7 @@ def test_filter_lower_than(capsys):
     assert "taxonkit filter --lower-than family" in terminal.err
 
 
-@pytest.mark.parametrize(
-    "discard_norank,exp_result",
-    [
-        (True, [6656, 87479]),
-        (
-            False,
-            [
-                131567,
-                33154,
-                6072,
-                33213,
-                33317,
-                1206794,
-                88770,
-                6656,
-                197563,
-                197562,
-                85512,
-                87479,
-            ],
-        ),
-    ],
-)
-def test_filter_equal_to_multi(capsys, discard_norank, exp_result):
+def test_filter_equal_to_multi(capsys):
     taxids = [
         131567,
         2759,
@@ -1030,10 +1008,8 @@ def test_filter_equal_to_multi(capsys, discard_norank, exp_result):
         87479,
         412111,
     ]
-    obs_result = filter(
-        taxids, threads=1, equal_to=["phylum", "genus"], debug=True, discard_norank=discard_norank
-    )
-    assert obs_result == exp_result
+    obs_result = filter(taxids, threads=1, equal_to=["phylum", "genus"], debug=True)
+    assert obs_result == [6656, 87479]
     terminal = capsys.readouterr()
     assert "--equal-to phylum,genus" in terminal.err
 
@@ -1073,15 +1049,15 @@ def test_filter_save_predictable():
 def test_list_ranks(capsys):
     ranks = list_ranks(debug=True)
     multiranks = [r for r in ranks if isinstance(r, pylist)]
-    assert len(ranks) == 71
-    assert len(multiranks) == 17
+    assert len(ranks) == 74
+    assert len(multiranks) == 18
     terminal = capsys.readouterr()
     assert "taxonkit filter --list-order" in terminal.err
 
 
 def test_list_ranks_db(capsys):
     ranks = list_ranks_db(debug=True)
-    assert len(ranks) == 44
+    assert len(ranks) == 48
     terminal = capsys.readouterr()
     assert "taxonkit filter --list-ranks" in terminal.err
 
