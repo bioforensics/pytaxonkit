@@ -145,7 +145,8 @@ class ListResult:
 
     def _do_traverse(self, tree):
         for taxonstr, taxtree in tree.items():
-            taxid, rank, name = taxonstr.replace("[", "]").split("]")
+            taxid, remainder = s.split("[", 1)
+            rank, name = remainder.split("]", 1)
             taxon = BasicTaxon(taxid=int(taxid.strip()), rank=rank, name=name.strip())
             yield taxon
             if len(taxtree) > 0:
