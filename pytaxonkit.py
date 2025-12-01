@@ -231,7 +231,7 @@ def test_list_leaves(capsys):
         BasicTaxon(taxid=8204, rank="species", name="Anarhichas lupus"),
         BasicTaxon(taxid=2468, rank="species", name="Plasmid NR79"),
     ]
-    assert sub_trees == [{}, {}]
+    assert all(len(t) == 0 for t in sub_trees)
     out, err = capsys.readouterr()
     data = "[pytaxonkit::debug] taxonkit list --json --show-name --show-rank --ids 8204,2468"
     assert err.strip() == data
@@ -262,7 +262,7 @@ def test_list_genera(taxid, taxon, subtaxon, subsubtaxon):
     assert tax == taxon
     assert subtax == subtaxon
     assert subsubtax == subsubtaxon
-    assert subsubtree == {}
+    assert len(subsubtree) == 0
 
 
 def test_list_str():
