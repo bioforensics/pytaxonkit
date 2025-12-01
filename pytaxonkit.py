@@ -137,15 +137,15 @@ class ListResult:
 
     def __iter__(self):
         for taxonstr, taxtree in self._data.items():
-            taxid, rank, name = taxonstr.replace("[", "]").split("]")
+            taxid, remainder = taxonstr.split("[", 1)
+            rank, name = remainder.split("]", 1)
             taxon = BasicTaxon(taxid=int(taxid.strip()), rank=rank, name=name.strip())
-            if len(taxtree) > 0:
-                taxtree = ListResult(json.dumps(taxtree))
+            taxtree = ListResult(json.dumps(taxtree))
             yield taxon, taxtree
 
     def _do_traverse(self, tree):
         for taxonstr, taxtree in tree.items():
-            taxid, remainder = s.split("[", 1)
+            taxid, remainder = taxonstr.split("[", 1)
             rank, name = remainder.split("]", 1)
             taxon = BasicTaxon(taxid=int(taxid.strip()), rank=rank, name=name.strip())
             yield taxon
@@ -275,6 +275,18 @@ def test_list_empty():
     with pytest.warns(UserWarning, match="No input for pytaxonkit.list"):
         result = list([])
         assert result is None
+
+
+@pytest.mark.parametrize("taxid,name", [
+    (668369, "Escherichia coli DH5[alpha]"),
+    (11022, "Eastern equine encephalitis virus (STRAIN VA33[TEN BROECK])"),
+])
+def test_list_taxon_name_with_extra_brackets_regression(taxid, name):
+    result = iter(list([taxid]))
+    taxon, tree = next(result)
+    assert taxon.name == name
+    assert taxon.taxid == taxid
+    assert len(tree) == 0
 
 
 # -------------------------------------------------------------------------------------------------
