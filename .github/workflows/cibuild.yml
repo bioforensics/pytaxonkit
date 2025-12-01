@@ -16,6 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 4
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
