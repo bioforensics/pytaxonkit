@@ -277,10 +277,13 @@ def test_list_empty():
         assert result is None
 
 
-@pytest.mark.parametrize("taxid,name", [
-    (668369, "Escherichia coli DH5[alpha]"),
-    (11022, "Eastern equine encephalitis virus (STRAIN VA33[TEN BROECK])"),
-])
+@pytest.mark.parametrize(
+    "taxid,name",
+    [
+        (668369, "Escherichia coli DH5[alpha]"),
+        (11022, "Eastern equine encephalitis virus (STRAIN VA33[TEN BROECK])"),
+    ],
+)
 def test_list_taxon_name_with_extra_brackets_regression(taxid, name):
     result = iter(list([taxid]))
     taxon, tree = next(result)
