@@ -23,9 +23,8 @@ format:
 	black --line-length=99 pytaxonkit.py setup.py
 
 
-## devenv:   set up a development environment
-devenv:
-	conda install -y black==22.6.0 pytest pytest-cov
-	pip install -e .
+## hooks:    install development hooks
+hooks:
+	echo "set -eo pipefail" > .git/hooks/pre-commit
 	echo 'make style' >> .git/hooks/pre-commit
 	chmod 755 .git/hooks/pre-commit
