@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.10.1] 2026-01-14
+
+### Fixed
+- Handling of taxon names containing multiple sets of square brackets (#47)
+- Dependency pin affecting Python 3.13 compatibility (#48)
+
+
 ## [0.10] 2025-06-27
 
 ### Changed
