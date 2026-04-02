@@ -66,7 +66,9 @@ class NCBITaxonomyDumpNotFoundError(FileNotFoundError):
 
 
 def _get_taxonkit_version():
-    proc = Popen(["taxonkit", "version"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
+    proc = Popen(
+        ["taxonkit", "version"], stdout=PIPE, stderr=PIPE, universal_newlines=True
+    )
     out, err = proc.communicate()
     if proc.returncode != 0:
         raise TaxonKitCLIError(err)  # pragma: no cover
@@ -98,8 +100,12 @@ def validate_threads(value):
         threadcount = int(value)
         return str(threadcount)
     except ValueError:
-        log(f'invalid thread count "{value}"; resetting to taxonkit default', level="warning")
+        log(
+            f'invalid thread count "{value}"; resetting to taxonkit default',
+            level="warning",
+        )
         return None
+
 
 def validate_n(value):
     if value is None:
@@ -108,8 +114,11 @@ def validate_n(value):
         n = int(value)
         return str(n)
     except ValueError:
-        log(f'invalid n count "{value}"; resetting to taxonkit default', level="warning")
+        log(
+            f'invalid n count "{value}"; resetting to taxonkit default', level="warning"
+        )
         return None
+
 
 def test_validate_threads(capsys):
     assert validate_threads(None) is None
@@ -214,7 +223,15 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     if idlist == "":
         warn("No input for pytaxonkit.list", UserWarning)
         return
-    arglist = ["taxonkit", "list", "--json", "--show-name", "--show-rank", "--ids", idlist]
+    arglist = [
+        "taxonkit",
+        "list",
+        "--json",
+        "--show-name",
+        "--show-rank",
+        "--ids",
+        idlist,
+    ]
     if threads:
         arglist.extend(("--threads", validate_threads(threads)))
     if data_dir:
@@ -232,7 +249,9 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
 
 
 def test_list_leaves(capsys):
-    result = list([8204, 2468], debug=True)  # Nota bene: `list` here is `pytaxonkit.list`
+    result = list(
+        [8204, 2468], debug=True
+    )  # Nota bene: `list` here is `pytaxonkit.list`
     assert len(result) == 2
     top_level_taxa = [taxon for taxon, tree in result]
     sub_trees = [tree for taxon, tree in result]
@@ -379,7 +398,13 @@ def lineage(
     if debug:
         log(*arglist)
     with NamedTemporaryFile(suffix="-lineage.txt") as lineagefile:
-        proc = Popen(arglist, stdin=PIPE, stdout=lineagefile, stderr=PIPE, universal_newlines=True)
+        proc = Popen(
+            arglist,
+            stdin=PIPE,
+            stdout=lineagefile,
+            stderr=PIPE,
+            universal_newlines=True,
+        )
         out, err = proc.communicate(input=idlist)
         if proc.returncode != 0:
             raise TaxonKitCLIError(err)  # pragma: no cover
@@ -391,7 +416,9 @@ def lineage(
         if threads:
             extraargs.extend(("--threads", validate_threads(threads)))
         if data_dir:
-            extraargs.extend(("--data-dir", validate_data_dir(data_dir)))  # pragma: no cover
+            extraargs.extend(
+                ("--data-dir", validate_data_dir(data_dir))
+            )  # pragma: no cover
         arglist = [
             "taxonkit",
             "reformat2",
@@ -509,10 +536,14 @@ def test_lineage(capsys):
             ]
         )
     )
-    assert result.Rank.equals(pd.Series(["species", "species", "varietas", "species", "species"]))
+    assert result.Rank.equals(
+        pd.Series(["species", "species", "varietas", "species", "species"])
+    )
 
     out, err = capsys.readouterr()
-    assert "taxonkit lineage --show-lineage-taxids --show-rank --show-status-code" in err
+    assert (
+        "taxonkit lineage --show-lineage-taxids --show-rank --show-status-code" in err
+    )
     assert "taxonkit reformat2 --taxid-field 1 --show-lineage-taxids" in err
 
 
@@ -524,7 +555,8 @@ def test_lineage_single_taxid():
 def test_lineage_threads():
     result = lineage(["200643"], threads=1)
     assert (
-        result.FullLineageRanks.iloc[0] == "cellular root;domain;kingdom;clade;clade;phylum;class"
+        result.FullLineageRanks.iloc[0]
+        == "cellular root;domain;kingdom;clade;clade;phylum;class"
     )
     expected = "cellular organisms;Bacteria;Pseudomonadati;FCB group;Bacteroidota/Chlorobiota group;Bacteroidota;Bacteroidia"
     assert result.FullLineage.iloc[0] == expected
@@ -587,7 +619,15 @@ def test_name_empty():
 # -------------------------------------------------------------------------------------------------
 
 
-def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False, fuzzy=False, fuzzy_top_n=None):
+def name2taxid(
+    names,
+    sciname=False,
+    threads=None,
+    data_dir=None,
+    debug=False,
+    fuzzy=False,
+    fuzzy_top_n=None,
+):
     """query taxid by taxon scientific name
 
     Parameters
@@ -603,7 +643,7 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False, f
         Specify the location of the NCBI taxonomy `.dmp` files; by default, taxonkit searches in
         `~/.taxonkit/`
     fuzzy: bool, default False
-        By default, name matches need to be exact; when 'fuzzy=True' fuzzy 
+        By default, name matches need to be exact; when 'fuzzy=True' fuzzy
     fuzzy_top_n : int
         Override the default taxonkit setting for number of matches in fuzzy search
     debug : bool, default False
@@ -656,13 +696,20 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False, f
         "Rank": StringDtype(),
     }
     data = pd.read_csv(
-        StringIO(out), sep="\t", header=None, names=columns, dtype=columns, index_col=False
+        StringIO(out),
+        sep="\t",
+        header=None,
+        names=columns,
+        dtype=columns,
+        index_col=False,
     )
     return data
 
 
 def test_name2taxid(capsys):
-    result = name2taxid(["Chaetocerotales", "Diptera", "Rickettsiales", "Hypocreales"], debug=True)
+    result = name2taxid(
+        ["Chaetocerotales", "Diptera", "Rickettsiales", "Hypocreales"], debug=True
+    )
     taxids = pd.Series([265576, 7147, 766, 5125], dtype=UInt32Dtype())
     ranks = pd.Series(["order", "order", "order", "order"], dtype=StringDtype())
     assert result.TaxID.equals(taxids)
@@ -935,7 +982,11 @@ def test_filter_higher_than(discard_norank, exp_result):
         599582,
     ]
     obs_result = filter(
-        taxids, threads=1, higher_than="order", equal_to="order", discard_norank=discard_norank
+        taxids,
+        threads=1,
+        higher_than="order",
+        equal_to="order",
+        discard_norank=discard_norank,
     )
     print(obs_result)
     assert obs_result == exp_result
@@ -1038,7 +1089,11 @@ def test_filter_save_predictable():
         1327037,
     ]
     obs_result = filter(
-        taxids, threads=1, lower_than="species", equal_to="species", save_predictable=True
+        taxids,
+        threads=1,
+        lower_than="species",
+        equal_to="species",
+        save_predictable=True,
     )
     exp_result = [562, 2605619, 1327037]
     assert obs_result == exp_result
@@ -1203,7 +1258,9 @@ def test_lca_keep_invalid_multi():
         [743375, 987654321],
         [123456789, 987654321],
     ]
-    observed = lca(query, skip_deleted=True, skip_unfound=True, keep_invalid=True, multi=True)
+    observed = lca(
+        query, skip_deleted=True, skip_unfound=True, keep_invalid=True, multi=True
+    )
     expected = [743375, 0, 0, 743375, 743375, 0]
     assert expected == observed
 
@@ -1212,7 +1269,11 @@ def test_lca_keep_invalid_multi():
     "domulti, ids,result",
     [
         (False, [775536, 2238728, 1121123211234321], None),
-        (True, [[1766280, 406491, 2568889], [11111111111, 20487, 760325]], [None, None]),
+        (
+            True,
+            [[1766280, 406491, 2568889], [11111111111, 20487, 760325]],
+            [None, None],
+        ),
     ],
 )
 def test_lca_all_missing(ids, domulti, result):
