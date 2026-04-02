@@ -101,6 +101,15 @@ def validate_threads(value):
         log(f'invalid thread count "{value}"; resetting to taxonkit default', level="warning")
         return None
 
+def validate_n(value):
+    if value is None:
+        return None
+    try:
+        threadcount = int(value)
+        return str(threadcount)
+    except ValueError:
+        log(f'invalid n count "{value}"; resetting to taxonkit default', level="warning")
+        return None
 
 def test_validate_threads(capsys):
     assert validate_threads(None) is None
@@ -578,7 +587,7 @@ def test_name_empty():
 # -------------------------------------------------------------------------------------------------
 
 
-def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False):
+def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False, fuzzy=False, fuzzy_top_n=None):
     """query taxid by taxon scientific name
 
     Parameters
@@ -593,6 +602,10 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False):
     data_dir : str, default None
         Specify the location of the NCBI taxonomy `.dmp` files; by default, taxonkit searches in
         `~/.taxonkit/`
+    fuzzy: bool, default False
+        By default, name matches need to be exact; when 'fuzzy=True' fuzzy 
+    threads : int
+        Override the default taxonkit setting for number of matches in fuzzy search
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
 
@@ -627,6 +640,10 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False):
         arglist.extend(("--threads", validate_threads(threads)))
     if data_dir:
         arglist.extend(("--data-dir", validate_data_dir(data_dir)))  # pragma: no cover
+    if fuzzy:
+        arglist.append("--fuzzy")
+    if fuzzy_top_n:
+        arglist.extend(("--fuzzy-top-n", validate_threads(fuzzy_top_n)))
     if debug:
         log(*arglist)  # pragma: no cover
     proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
