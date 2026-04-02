@@ -105,8 +105,8 @@ def validate_n(value):
     if value is None:
         return None
     try:
-        threadcount = int(value)
-        return str(threadcount)
+        n = int(value)
+        return str(n)
     except ValueError:
         log(f'invalid n count "{value}"; resetting to taxonkit default', level="warning")
         return None
@@ -604,7 +604,7 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False, f
         `~/.taxonkit/`
     fuzzy: bool, default False
         By default, name matches need to be exact; when 'fuzzy=True' fuzzy 
-    threads : int
+    fuzzy_top_n : int
         Override the default taxonkit setting for number of matches in fuzzy search
     debug : bool, default False
         Print debugging output, e.g., system calls to `taxonkit`
@@ -643,7 +643,7 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False, f
     if fuzzy:
         arglist.append("--fuzzy")
     if fuzzy_top_n:
-        arglist.extend(("--fuzzy-top-n", validate_threads(fuzzy_top_n)))
+        arglist.extend(("--fuzzy-top-n", validate_n(fuzzy_top_n)))
     if debug:
         log(*arglist)  # pragma: no cover
     proc = Popen(arglist, stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
