@@ -98,10 +98,7 @@ def validate_threads(value):
         threadcount = int(value)
         return str(threadcount)
     except ValueError:
-        log(
-            f'invalid thread count "{value}"; resetting to taxonkit default',
-            level="warning",
-        )
+        log(f'invalid thread count "{value}"; resetting to taxonkit default', level="warning")
         return None
 
 
@@ -219,15 +216,7 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     if idlist == "":
         warn("No input for pytaxonkit.list", UserWarning)
         return
-    arglist = [
-        "taxonkit",
-        "list",
-        "--json",
-        "--show-name",
-        "--show-rank",
-        "--ids",
-        idlist,
-    ]
+    arglist = ["taxonkit", "list", "--json", "--show-name", "--show-rank", "--ids", idlist]
     if threads:
         arglist.extend(("--threads", validate_threads(threads)))
     if data_dir:
@@ -392,13 +381,7 @@ def lineage(
     if debug:
         log(*arglist)
     with NamedTemporaryFile(suffix="-lineage.txt") as lineagefile:
-        proc = Popen(
-            arglist,
-            stdin=PIPE,
-            stdout=lineagefile,
-            stderr=PIPE,
-            universal_newlines=True,
-        )
+        proc = Popen(arglist, stdin=PIPE, stdout=lineagefile, stderr=PIPE, universal_newlines=True)
         out, err = proc.communicate(input=idlist)
         if proc.returncode != 0:
             raise TaxonKitCLIError(err)  # pragma: no cover
@@ -677,12 +660,7 @@ def name2taxid(
         "Rank": StringDtype(),
     }
     data = pd.read_csv(
-        StringIO(out),
-        sep="\t",
-        header=None,
-        names=columns,
-        dtype=columns,
-        index_col=False,
+        StringIO(out), sep="\t", header=None, names=columns, dtype=columns, index_col=False
     )
     return data
 
@@ -961,11 +939,7 @@ def test_filter_higher_than(discard_norank, exp_result):
         599582,
     ]
     obs_result = filter(
-        taxids,
-        threads=1,
-        higher_than="order",
-        equal_to="order",
-        discard_norank=discard_norank,
+        taxids, threads=1, higher_than="order", equal_to="order", discard_norank=discard_norank
     )
     print(obs_result)
     assert obs_result == exp_result
@@ -1068,11 +1042,7 @@ def test_filter_save_predictable():
         1327037,
     ]
     obs_result = filter(
-        taxids,
-        threads=1,
-        lower_than="species",
-        equal_to="species",
-        save_predictable=True,
+        taxids, threads=1, lower_than="species", equal_to="species", save_predictable=True
     )
     exp_result = [562, 2605619, 1327037]
     assert obs_result == exp_result
@@ -1246,11 +1216,7 @@ def test_lca_keep_invalid_multi():
     "domulti, ids,result",
     [
         (False, [775536, 2238728, 1121123211234321], None),
-        (
-            True,
-            [[1766280, 406491, 2568889], [11111111111, 20487, 760325]],
-            [None, None],
-        ),
+        (True, [[1766280, 406491, 2568889], [11111111111, 20487, 760325]], [None, None]),
     ],
 )
 def test_lca_all_missing(ids, domulti, result):
