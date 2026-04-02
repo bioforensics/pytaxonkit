@@ -66,9 +66,7 @@ class NCBITaxonomyDumpNotFoundError(FileNotFoundError):
 
 
 def _get_taxonkit_version():
-    proc = Popen(
-        ["taxonkit", "version"], stdout=PIPE, stderr=PIPE, universal_newlines=True
-    )
+    proc = Popen(["taxonkit", "version"], stdout=PIPE, stderr=PIPE, universal_newlines=True)
     out, err = proc.communicate()
     if proc.returncode != 0:
         raise TaxonKitCLIError(err)  # pragma: no cover
@@ -114,9 +112,7 @@ def validate_n(value):
         n = int(value)
         return str(n)
     except ValueError:
-        log(
-            f'invalid n count "{value}"; resetting to taxonkit default', level="warning"
-        )
+        log(f'invalid n count "{value}"; resetting to taxonkit default', level="warning")
         return None
 
 
@@ -249,9 +245,7 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
 
 
 def test_list_leaves(capsys):
-    result = list(
-        [8204, 2468], debug=True
-    )  # Nota bene: `list` here is `pytaxonkit.list`
+    result = list([8204, 2468], debug=True)  # Nota bene: `list` here is `pytaxonkit.list`
     assert len(result) == 2
     top_level_taxa = [taxon for taxon, tree in result]
     sub_trees = [tree for taxon, tree in result]
@@ -416,9 +410,7 @@ def lineage(
         if threads:
             extraargs.extend(("--threads", validate_threads(threads)))
         if data_dir:
-            extraargs.extend(
-                ("--data-dir", validate_data_dir(data_dir))
-            )  # pragma: no cover
+            extraargs.extend(("--data-dir", validate_data_dir(data_dir)))  # pragma: no cover
         arglist = [
             "taxonkit",
             "reformat2",
@@ -536,14 +528,10 @@ def test_lineage(capsys):
             ]
         )
     )
-    assert result.Rank.equals(
-        pd.Series(["species", "species", "varietas", "species", "species"])
-    )
+    assert result.Rank.equals(pd.Series(["species", "species", "varietas", "species", "species"]))
 
     out, err = capsys.readouterr()
-    assert (
-        "taxonkit lineage --show-lineage-taxids --show-rank --show-status-code" in err
-    )
+    assert "taxonkit lineage --show-lineage-taxids --show-rank --show-status-code" in err
     assert "taxonkit reformat2 --taxid-field 1 --show-lineage-taxids" in err
 
 
@@ -555,8 +543,7 @@ def test_lineage_single_taxid():
 def test_lineage_threads():
     result = lineage(["200643"], threads=1)
     assert (
-        result.FullLineageRanks.iloc[0]
-        == "cellular root;domain;kingdom;clade;clade;phylum;class"
+        result.FullLineageRanks.iloc[0] == "cellular root;domain;kingdom;clade;clade;phylum;class"
     )
     expected = "cellular organisms;Bacteria;Pseudomonadati;FCB group;Bacteroidota/Chlorobiota group;Bacteroidota;Bacteroidia"
     assert result.FullLineage.iloc[0] == expected
@@ -707,9 +694,7 @@ def name2taxid(
 
 
 def test_name2taxid(capsys):
-    result = name2taxid(
-        ["Chaetocerotales", "Diptera", "Rickettsiales", "Hypocreales"], debug=True
-    )
+    result = name2taxid(["Chaetocerotales", "Diptera", "Rickettsiales", "Hypocreales"], debug=True)
     taxids = pd.Series([265576, 7147, 766, 5125], dtype=UInt32Dtype())
     ranks = pd.Series(["order", "order", "order", "order"], dtype=StringDtype())
     assert result.TaxID.equals(taxids)
@@ -1258,9 +1243,7 @@ def test_lca_keep_invalid_multi():
         [743375, 987654321],
         [123456789, 987654321],
     ]
-    observed = lca(
-        query, skip_deleted=True, skip_unfound=True, keep_invalid=True, multi=True
-    )
+    observed = lca(query, skip_deleted=True, skip_unfound=True, keep_invalid=True, multi=True)
     expected = [743375, 0, 0, 743375, 743375, 0]
     assert expected == observed
 

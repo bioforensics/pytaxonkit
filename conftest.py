@@ -46,8 +46,8 @@ import pandas
 import pytest
 
 
-@pytest.fixture(autouse=True, scope='session')
+@pytest.fixture(autouse=True, scope="session")
 def pandas_terminal_width():
-    pandas.set_option('display.width', None)
-    pandas.set_option('display.max_columns', None)
-    pandas.set_option('display.max_colwidth', None)
+    pandas.set_option("display.width", None)
+    pandas.set_option("display.max_columns", None)
+    pandas.set_option("display.max_colwidth", None)
