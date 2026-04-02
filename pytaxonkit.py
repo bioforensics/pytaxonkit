@@ -607,13 +607,7 @@ def test_name_empty():
 
 
 def name2taxid(
-    names,
-    sciname=False,
-    threads=None,
-    data_dir=None,
-    debug=False,
-    fuzzy=False,
-    fuzzy_top_n=None,
+    names, sciname=False, threads=None, data_dir=None, debug=False, fuzzy=False, fuzzy_top_n=None
 ):
     """query taxid by taxon scientific name
 
