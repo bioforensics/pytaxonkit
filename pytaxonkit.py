@@ -101,6 +101,7 @@ def validate_threads(value):
         log(f'invalid thread count "{value}"; resetting to taxonkit default', level="warning")
         return None
 
+
 def validate_n(value):
     if value is None:
         return None
@@ -110,6 +111,7 @@ def validate_n(value):
     except ValueError:
         log(f'invalid n count "{value}"; resetting to taxonkit default', level="warning")
         return None
+
 
 def test_validate_threads(capsys):
     assert validate_threads(None) is None
@@ -587,7 +589,9 @@ def test_name_empty():
 # -------------------------------------------------------------------------------------------------
 
 
-def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False, fuzzy=False, fuzzy_top_n=None):
+def name2taxid(
+    names, sciname=False, threads=None, data_dir=None, debug=False, fuzzy=False, fuzzy_top_n=None
+):
     """query taxid by taxon scientific name
 
     Parameters
@@ -603,7 +607,7 @@ def name2taxid(names, sciname=False, threads=None, data_dir=None, debug=False, f
         Specify the location of the NCBI taxonomy `.dmp` files; by default, taxonkit searches in
         `~/.taxonkit/`
     fuzzy: bool, default False
-        By default, name matches need to be exact; when 'fuzzy=True' fuzzy 
+        By default, name matches need to be exact; when 'fuzzy=True' fuzzy
     fuzzy_top_n : int
         Override the default taxonkit setting for number of matches in fuzzy search
     debug : bool, default False
