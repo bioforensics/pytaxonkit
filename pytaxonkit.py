@@ -687,6 +687,15 @@ def test_name2taxid_empty():
         assert result is None
 
 
+def test_name2taxid_fuzzy():
+    result = name2taxid(["Paramecium tetraurelia strain Stock d4-2"], fuzzy=True)
+    print(result.to_string())
+    assert len(result) == 1
+    row = result.iloc[0]
+    assert row.TaxID == 412030
+    assert row.Rank == "strain"
+
+
 # -------------------------------------------------------------------------------------------------
 # taxonkit filter
 # -------------------------------------------------------------------------------------------------
