@@ -206,7 +206,7 @@ def list(ids, raw=False, threads=None, data_dir=None, debug=False):
     ...     print(f'Top level result: {taxon.name} ({taxon.taxid}); {len(subtaxa)} related taxa')
     ...
     Top level result: Polistes comanchus (268197); 2 related taxa
-    Top level result: Bos (9903); 33 related taxa
+    Top level result: Bos (9903); 34 related taxa
     >>> subtaxa[0]
     BasicTaxon(taxid=9904, rank='species', name='Bos gaurus')
     >>> pytaxonkit.list([9605], raw=True)
@@ -1222,10 +1222,10 @@ def test_lca_keep_invalid_multi():
 
 
 @pytest.mark.parametrize(
-    "domulti, ids,result",
+    "domulti, ids, result",
     [
-        (False, [775536, 2238728, 1121123211234321], None),
-        (True, [[1766280, 406491, 2568889], [11111111111, 20487, 760325]], [None, None]),
+        (False, [775536, 2238728, 3602992145], None),
+        (True, [[3198828, 406491, 2222222222], [1111111111, 20487, 3674241]], [None, None]),
     ],
 )
 def test_lca_all_missing(ids, domulti, result):
