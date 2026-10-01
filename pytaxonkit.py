@@ -46,6 +46,7 @@ import json
 import os
 import pandas as pd
 from pandas import UInt32Dtype, StringDtype
+from pathlib import Path
 from pytaxonkit_version import get_versions
 import pytest
 from subprocess import Popen, PIPE
@@ -278,8 +279,9 @@ def test_list_genera(taxid, taxon, subtaxon, subsubtaxon):
 
 def test_list_str():
     result = list(["20019"])
-    with open("sweetleaf.json", "r") as fh:
-        assert str(result) == fh.read().strip()
+    observed = str(result)
+    expected = Path("sweetleaf.json").read_text().strip()
+    assert observed == expected
 
 
 def test_list_empty():
